@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-010"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "seed-payments-namespace"
+      description: "Creates the payments namespace and a non-compliant ledger-api Deployment"
+      type: "file"
+      source: "bootstrap/02-seed-payments-namespace.sh"
+
+validation:
+  scripts:
+    - name: "verify-admission-controllers-capstone"
+      description: "Confirms the webhook rule, the PolicyReport fail entry, and both post-Enforce outcomes"
+      type: "file"
+      source: "validation/validate-completed.sh"

@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-004"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "capstone-010-setup"
+      description: "Creates the checkout and platform-shared namespaces plus the shared-app-config ConfigMap"
+      type: "file"
+      source: "bootstrap/02-seed-namespaces.sh"
+
+validation:
+  scripts:
+    - name: "verify-section-010-capstone"
+      description: "Confirms the validate, mutate, and generate policies all behave as required"
+      type: "file"
+      source: "validation/validate-completed.sh"

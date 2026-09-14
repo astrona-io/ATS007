@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-006"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "seed-releases-namespace"
+      description: "Creates the releases namespace and the allowed-environments ConfigMap"
+      type: "file"
+      source: "bootstrap/02-seed-releases-namespace.sh"
+
+validation:
+  scripts:
+    - name: "verify-check-env-label"
+      description: "Confirms the policy uses configMap context and enforces the environment allow-list"
+      type: "file"
+      source: "validation/validate-completed.sh"

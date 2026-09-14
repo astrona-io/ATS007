@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-014"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "install-cli-and-seed-files"
+      description: "Installs the kyverno CLI and writes the policy and resource manifests to /root/lab"
+      type: "file"
+      source: "bootstrap/02-install-cli-and-seed-files.sh"
+
+validation:
+  scripts:
+    - name: "verify-kyverno-test-suite"
+      description: "Confirms a kyverno-test.yaml exists with correct expectations and that kyverno test passes"
+      type: "file"
+      source: "validation/validate-completed.sh"

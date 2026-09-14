@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-005"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "create-storefront-namespace"
+      description: "Creates the storefront namespace used by the task"
+      type: "file"
+      source: "bootstrap/02-create-storefront-namespace.sh"
+
+validation:
+  scripts:
+    - name: "verify-deny-loadbalancer-services"
+      description: "Confirms the namespaced Policy blocks LoadBalancer Services and allows ClusterIP Services"
+      type: "file"
+      source: "validation/validate-completed.sh"

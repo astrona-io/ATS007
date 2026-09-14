@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-002"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "lab-002-setup"
+      description: "Creates the storefront namespace and a pre-existing non-compliant Deployment"
+      type: "file"
+      source: "bootstrap/02-seed-legacy-app.sh"
+
+validation:
+  scripts:
+    - name: "verify-require-container-resources-policy"
+      description: "Confirms the ClusterPolicy blocks a non-compliant Pod and background scanning reports legacy-app"
+      type: "file"
+      source: "validation/validate-completed.sh"

@@ -1,0 +1,23 @@
+# Kyverno Policy YAML Anatomy & Applying Manifests (PLAYGROUND) — Playground environment
+# A clean sandbox: it spins up, runs OS prep, then stays running for free
+# exploration. No task, no grading, no `astrona submit`.
+# Schema: internal/config.LabConfig.
+#
+# Runtime: a kind Kubernetes cluster. No `runtime:` block is present, which is
+# what selects kind — kubectl is configured against it at startup.
+
+metadata:
+  name: "section-020-module-01-playground"
+  docs:
+    guide: "docs/overview.md"
+
+bootstrap:
+  init:
+    - name: "prepare"
+      description: "OS prep only: install tools/packages, seed sample data. Nothing to solve."
+      type: "file"
+      source: "bootstrap/prepare.sh"
+  manifests: []
+
+teardown:
+  keepCluster: false

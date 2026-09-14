@@ -1,0 +1,31 @@
+metadata:
+  name: "ats-007-lab-012"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "setup-registry"
+      description: "Deploys an in-cluster OCI registry and allows insecure pulls from it"
+      type: "file"
+      source: "bootstrap/02-setup-registry.sh"
+    - name: "install-tools"
+      description: "Installs the crane and cosign CLIs"
+      type: "file"
+      source: "bootstrap/03-install-tools.sh"
+    - name: "sign-sample-image"
+      description: "Pushes a signed and an unsigned edge-api image, publishing the Cosign public key"
+      type: "file"
+      source: "bootstrap/04-sign-sample-image.sh"
+
+validation:
+  scripts:
+    - name: "verify-signed-image-enforcement"
+      description: "Confirms the verifyImages policy exists, rejects unsigned images, and digest-pins signed ones"
+      type: "file"
+      source: "validation/validate-completed.sh"
