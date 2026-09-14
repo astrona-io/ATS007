@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-009"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "seed-analytics-namespace"
+      description: "Creates the analytics namespace and a non-compliant legacy-etl Deployment"
+      type: "file"
+      source: "bootstrap/02-seed-analytics-namespace.sh"
+
+validation:
+  scripts:
+    - name: "verify-audit-then-enforce"
+      description: "Confirms the PolicyReport recorded legacy-etl's violation and that Enforce mode now blocks new violations"
+      type: "file"
+      source: "validation/validate-completed.sh"

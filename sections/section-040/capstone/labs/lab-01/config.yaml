@@ -1,0 +1,31 @@
+metadata:
+  name: "ats-007-lab-013"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "setup-registry"
+      description: "Deploys an in-cluster OCI registry and allows insecure pulls from it"
+      type: "file"
+      source: "bootstrap/02-setup-registry.sh"
+    - name: "install-tools"
+      description: "Installs the crane and cosign CLIs"
+      type: "file"
+      source: "bootstrap/03-install-tools.sh"
+    - name: "sign-sample-image"
+      description: "Deploys legacy-worker on a mutable tag, and pushes a signed and an unsigned edge-api image"
+      type: "file"
+      source: "bootstrap/04-sign-sample-image.sh"
+
+validation:
+  scripts:
+    - name: "verify-capstone-completed"
+      description: "Confirms legacy-worker is digest-pinned and the verifyImages policy rejects/admits correctly"
+      type: "file"
+      source: "validation/validate-completed.sh"

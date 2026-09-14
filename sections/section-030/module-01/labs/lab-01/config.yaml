@@ -1,0 +1,19 @@
+metadata:
+  name: "ats-007-lab-008"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+
+validation:
+  scripts:
+    - name: "verify-webhook-and-enforcement"
+      description: "Confirms the ClusterPolicy exists, the webhook picked up ConfigMap, and enforcement works both ways"
+      type: "file"
+      source: "validation/validate-completed.sh"

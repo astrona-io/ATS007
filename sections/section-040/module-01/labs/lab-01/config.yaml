@@ -1,0 +1,27 @@
+metadata:
+  name: "ats-007-lab-011"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "deploy-edge-api"
+      description: "Deploys the edge-api workload referenced by a mutable tag"
+      type: "file"
+      source: "bootstrap/02-deploy-edge-api.sh"
+    - name: "install-tools"
+      description: "Installs the crane CLI for registry digest lookups"
+      type: "file"
+      source: "bootstrap/03-install-tools.sh"
+
+validation:
+  scripts:
+    - name: "verify-digest-pinned"
+      description: "Confirms edge-api is pinned to a digest reference and the rollout is healthy"
+      type: "file"
+      source: "validation/validate-completed.sh"

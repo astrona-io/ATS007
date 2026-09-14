@@ -1,0 +1,387 @@
+training:
+  id: ATS007
+  title: "KCA: Fundamentals of Kyverno"
+  description: >
+    Training material covering the Fundamentals of Kyverno domain for the
+    Kyverno Certified Associate (KCA) learning path, with hands-on labs
+    for each competency running on a kind Kubernetes cluster.
+
+  certification:
+    name: Kyverno Certified Associate
+    code: KCA
+    provider: Kyverno Project (CNCF Sandbox)
+    domain: Fundamentals of Kyverno
+    weight: 100
+
+modules:
+  - id: module-010
+    title: "Section 010: Kyverno Policies & Rules"
+    description: >
+      Learn how Kyverno turns policy into ordinary Kubernetes resources:
+      the ClusterPolicy and Policy CRDs, how a rule's match/exclude block
+      selects targets, and the three core rule actions — validate, mutate,
+      and generate — that let a cluster block, rewrite, or spawn resources
+      automatically.
+
+    content:
+      - type: reading
+        title: Section Overview
+        path: sections/section-010/README.md
+
+      - type: reading
+        title: "Module 1: Kyverno Policy & Rule Anatomy"
+        path: sections/section-010/module-01/course.md
+
+      - type: reading
+        title: "Module 1.1: ClusterPolicy vs Policy & Rule Anatomy"
+        path: sections/section-010/module-01/course-01-clusterpolicy-vs-policy-and-rule-anatomy.md
+
+      - type: reading
+        title: "Module 1.2: Match, Exclude & Resource Selection"
+        path: sections/section-010/module-01/course-02-match-exclude-and-resource-selection.md
+
+      - type: reading
+        title: Question
+        path: sections/section-010/module-01/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-010/module-01/labs/lab-01/solution.md
+
+      - type: lab
+        title: "ClusterPolicy Label Enforcement Lab"
+        path: sections/section-010/module-01/labs/lab-01
+
+      - type: reading
+        title: "Module 2: Validate Rules: Patterns, Deny Logic & foreach"
+        path: sections/section-010/module-02/course.md
+
+      - type: reading
+        title: "Module 2.1: Pattern Validation & Deny Conditions"
+        path: sections/section-010/module-02/course-01-pattern-validation-and-deny-conditions.md
+
+      - type: reading
+        title: "Module 2.2: foreach & Background Scans"
+        path: sections/section-010/module-02/course-02-foreach-and-background-scans.md
+
+      - type: reading
+        title: Question
+        path: sections/section-010/module-02/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-010/module-02/labs/lab-01/solution.md
+
+      - type: lab
+        title: "foreach Validate & Background Scan Lab"
+        path: sections/section-010/module-02/labs/lab-01
+
+      - type: reading
+        title: "Module 3: Mutate & Generate Rules"
+        path: sections/section-010/module-03/course.md
+
+      - type: reading
+        title: "Module 3.1: Mutate — patchStrategicMerge & JSON 6902"
+        path: sections/section-010/module-03/course-01-mutate-patchstrategicmerge-and-json6902.md
+
+      - type: reading
+        title: "Module 3.2: Generate — Clone & Synchronize"
+        path: sections/section-010/module-03/course-02-generate-clone-and-synchronize.md
+
+      - type: reading
+        title: Question
+        path: sections/section-010/module-03/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-010/module-03/labs/lab-01/solution.md
+
+      - type: lab
+        title: "Mutate & Generate Rules Lab"
+        path: sections/section-010/module-03/labs/lab-01
+
+      - type: reading
+        title: "Section 010 Knowledge Check: Kyverno Policies & Rules"
+        path: sections/section-010/quiz.md
+
+      - type: reading
+        title: Question
+        path: sections/section-010/capstone/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-010/capstone/labs/lab-01/solution.md
+
+      - type: lab
+        title: "Kyverno Policies & Rules Capstone Lab"
+        path: sections/section-010/capstone/labs/lab-01
+
+  - id: module-020
+    title: "Section 020: YAML Manifests"
+    description: >
+      Treat a Kyverno policy as what it really is — a plain Kubernetes
+      manifest. Learn the apiVersion/kind/metadata/spec anatomy shared with
+      every other Kubernetes object, how to apply and inspect policies with
+      kubectl, how variables, context, and JMESPath let a policy read
+      live cluster data instead of hardcoding values, and how the Kyverno
+      CLI validates policies against manifests with no cluster at all.
+
+    content:
+      - type: reading
+        title: Section Overview
+        path: sections/section-020/README.md
+
+      - type: reading
+        title: "Module 1: Kyverno Policy YAML Anatomy & Applying Manifests"
+        path: sections/section-020/module-01/course.md
+
+      - type: reading
+        title: "Module 1.1: apiVersion, kind, metadata & spec"
+        path: sections/section-020/module-01/course-01-apiversion-kind-metadata-spec.md
+
+      - type: reading
+        title: "Module 1.2: Applying & Inspecting with kubectl"
+        path: sections/section-020/module-01/course-02-applying-and-inspecting-with-kubectl.md
+
+      - type: reading
+        title: Question
+        path: sections/section-020/module-01/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-020/module-01/labs/lab-01/solution.md
+
+      - type: lab
+        title: "Namespaced Policy Authoring Lab"
+        path: sections/section-020/module-01/labs/lab-01
+
+      - type: reading
+        title: "Module 2: Variables, Context & JMESPath in Kyverno YAML"
+        path: sections/section-020/module-02/course.md
+
+      - type: reading
+        title: "Module 2.1: Variables & JMESPath Basics"
+        path: sections/section-020/module-02/course-01-variables-and-jmespath-basics.md
+
+      - type: reading
+        title: "Module 2.2: Context — configMap & apiCall"
+        path: sections/section-020/module-02/course-02-context-configmap-and-apicall.md
+
+      - type: reading
+        title: Question
+        path: sections/section-020/module-02/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-020/module-02/labs/lab-01/solution.md
+
+      - type: lab
+        title: "Context & Variables Validation Lab"
+        path: sections/section-020/module-02/labs/lab-01
+
+      - type: reading
+        title: "Module 3: Validating Manifests with the Kyverno CLI"
+        path: sections/section-020/module-03/course.md
+
+      - type: reading
+        title: "Module 3.1: kyverno apply — Offline Evaluation"
+        path: sections/section-020/module-03/course-01-kyverno-apply-offline-evaluation.md
+
+      - type: reading
+        title: "Module 3.2: kyverno test Suites & jp"
+        path: sections/section-020/module-03/course-02-kyverno-test-suites-and-jp.md
+
+      - type: reading
+        title: Question
+        path: sections/section-020/module-03/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-020/module-03/labs/lab-01/solution.md
+
+      - type: lab
+        title: "Kyverno CLI Manifest Validation Lab"
+        path: sections/section-020/module-03/labs/lab-01
+
+      - type: reading
+        title: "Section 020 Knowledge Check: YAML Manifests"
+        path: sections/section-020/quiz.md
+
+      - type: reading
+        title: Question
+        path: sections/section-020/capstone/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-020/capstone/labs/lab-01/solution.md
+
+      - type: lab
+        title: "YAML Manifests Capstone Lab"
+        path: sections/section-020/capstone/labs/lab-01
+
+  - id: module-030
+    title: "Section 030: Admission Controllers"
+    description: >
+      Understand the Kubernetes admission control model that Kyverno plugs
+      into: the mutating-then-validating webhook pipeline every write
+      request passes through, how Kyverno auto-manages its own webhook
+      configuration, and how Enforce/Audit modes and PolicyReports turn
+      that pipeline into a governance tool.
+
+    content:
+      - type: reading
+        title: Section Overview
+        path: sections/section-030/README.md
+
+      - type: reading
+        title: "Module 1: The Kubernetes Admission Control Model"
+        path: sections/section-030/module-01/course.md
+
+      - type: reading
+        title: "Module 1.1: API Request Lifecycle & Webhook Types"
+        path: sections/section-030/module-01/course-01-api-request-lifecycle-and-webhook-types.md
+
+      - type: reading
+        title: "Module 1.2: Mutating vs Validating Webhooks"
+        path: sections/section-030/module-01/course-02-mutating-vs-validating-webhooks.md
+
+      - type: reading
+        title: Question
+        path: sections/section-030/module-01/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-030/module-01/labs/lab-01/solution.md
+
+      - type: lab
+        title: "Auto-Managed Webhook Configuration Lab"
+        path: sections/section-030/module-01/labs/lab-01
+
+      - type: reading
+        title: "Module 2: Kyverno as a Dynamic Admission Controller"
+        path: sections/section-030/module-02/course.md
+
+      - type: reading
+        title: "Module 2.1: Enforce vs Audit & PolicyReports"
+        path: sections/section-030/module-02/course-01-enforce-vs-audit-and-policyreports.md
+
+      - type: reading
+        title: "Module 2.2: Background Scanning & Controllers"
+        path: sections/section-030/module-02/course-02-background-scanning-and-controllers.md
+
+      - type: reading
+        title: Question
+        path: sections/section-030/module-02/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-030/module-02/labs/lab-01/solution.md
+
+      - type: lab
+        title: "Audit-to-Enforce Rollout Lab"
+        path: sections/section-030/module-02/labs/lab-01
+
+      - type: reading
+        title: "Section 030 Knowledge Check: Admission Controllers"
+        path: sections/section-030/quiz.md
+
+      - type: reading
+        title: Question
+        path: sections/section-030/capstone/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-030/capstone/labs/lab-01/solution.md
+
+      - type: lab
+        title: "Admission Controllers Capstone Lab"
+        path: sections/section-030/capstone/labs/lab-01
+
+  - id: module-040
+    title: "Section 040: OCI Images"
+    description: >
+      Close the loop on supply-chain trust: the OCI image format and why a
+      digest, not a tag, is the only immutable reference to what actually
+      runs, then how Kyverno's verifyImages rule enforces Cosign signatures
+      and attestations at admission time and rewrites tags to digests.
+
+    content:
+      - type: reading
+        title: Section Overview
+        path: sections/section-040/README.md
+
+      - type: reading
+        title: "Module 1: OCI Image Fundamentals & Supply Chain Risk"
+        path: sections/section-040/module-01/course.md
+
+      - type: reading
+        title: "Module 1.1: OCI Manifests, Digests vs Tags"
+        path: sections/section-040/module-01/course-01-oci-manifests-digests-vs-tags.md
+
+      - type: reading
+        title: "Module 1.2: Signing & Provenance — Cosign & SLSA"
+        path: sections/section-040/module-01/course-02-signing-and-provenance-cosign-and-slsa.md
+
+      - type: reading
+        title: Question
+        path: sections/section-040/module-01/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-040/module-01/labs/lab-01/solution.md
+
+      - type: lab
+        title: "Digest Pinning Lab"
+        path: sections/section-040/module-01/labs/lab-01
+
+      - type: reading
+        title: "Module 2: Verifying Images with Kyverno verifyImages"
+        path: sections/section-040/module-02/course.md
+
+      - type: reading
+        title: "Module 2.1: verifyImages Rule Anatomy & Attestors"
+        path: sections/section-040/module-02/course-01-verifyimages-rule-anatomy-and-attestors.md
+
+      - type: reading
+        title: "Module 2.2: mutateDigest & Required Attestations"
+        path: sections/section-040/module-02/course-02-mutatedigest-and-required-attestations.md
+
+      - type: reading
+        title: Question
+        path: sections/section-040/module-02/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-040/module-02/labs/lab-01/solution.md
+
+      - type: lab
+        title: "Cosign Image Verification Lab"
+        path: sections/section-040/module-02/labs/lab-01
+
+      - type: reading
+        title: "Section 040 Knowledge Check: OCI Images"
+        path: sections/section-040/quiz.md
+
+      - type: reading
+        title: Question
+        path: sections/section-040/capstone/labs/lab-01/question.md
+
+      - type: reading
+        title: Solution Walkthrough
+        path: sections/section-040/capstone/labs/lab-01/solution.md
+
+      - type: lab
+        title: "OCI Images Capstone Lab"
+        path: sections/section-040/capstone/labs/lab-01
+
+  - id: module-050
+    title: "KCA Fundamentals of Kyverno Certification Quiz"
+    description: >
+      A comprehensive, scenario-based final assessment covering all 9
+      modules across the 4 Fundamentals of Kyverno sections, simulating
+      exam-style pressure.
+
+    content:
+      - type: reading
+        title: "Final Domain Certification Quiz"
+        path: sections/final-domain-quiz.md
