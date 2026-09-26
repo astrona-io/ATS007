@@ -44,3 +44,6 @@ You should be comfortable with basic `kubectl` usage: `kubectl get`, `kubectl ap
 The playground linked at the top of this page gives you a kind Kubernetes cluster with `kubectl` already configured and pointed at it — there is no SSH step. Kyverno v1.19.1 (Helm chart 3.9.1) is already installed and running in the `kyverno` namespace, and three namespaces are waiting for you to scope rules against: `payments` (labelled `env=production`), `catalog` (labelled `env=staging`), and `sandbox` (no labels). A single Pod, `sample-api`, is running in `payments`. No policies are pre-created — writing them is the point.
 
 Both parts carry **Try it** checkpoints that assume that environment is already up.
+
+> [!NOTE]
+> **You will see a deprecation warning on every policy command.** From Kyverno v1.19 onwards, any `kubectl` command touching a `kyverno.io/v1` `ClusterPolicy` or `Policy` prints `Warning: kyverno.io/v1 ClusterPolicy is deprecated and will be removed in a future release; migrate to ... (policies.kyverno.io)`. Nothing is broken — the policies still apply and enforce normally, and this course stays on these kinds because the KCA exam is written against them. [Part 1](./course-01-clusterpolicy-vs-policy-and-rule-anatomy.md) explains the warning in full the first time it appears.

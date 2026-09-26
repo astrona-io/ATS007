@@ -82,11 +82,32 @@ Because they are two distinct resource types rather than one type with a flag, t
 > Expect something like:
 >
 > ```text
+> Warning: kyverno.io/v1 ClusterPolicy is deprecated and will be removed in a future release; migrate to ValidatingPolicy, MutatingPolicy, GeneratingPolicy or ImageValidatingPolicy (policies.kyverno.io), see https://kyverno.io/docs/guides/migration-to-cel/
 > No resources found
+> Warning: kyverno.io/v1 Policy is deprecated and will be removed in a future release; migrate to NamespacedValidatingPolicy and the other namespaced policy types (policies.kyverno.io), see https://kyverno.io/docs/guides/migration-to-cel/
 > No resources found
 > ```
 >
 > Both are empty on a fresh playground — nothing is pre-created. The point is that these are two separate queries against two separate resource types: a `Policy` in `catalog` will never appear in the first listing, and no amount of `match` configuration will make it apply to `sandbox`.
+>
+> The two `Warning:` lines are expected — see the note below. They come from the API server, not from a mistake on your side, and they appear on every `kubectl` command that touches these two kinds.
+
+> [!IMPORTANT]
+> **About that deprecation warning**
+>
+> This playground runs Kyverno v1.19.1, and from v1.19 onwards Kyverno prints a deprecation warning whenever you read or write a `kyverno.io/v1` `ClusterPolicy` or `Policy`:
+>
+> ```text
+> Warning: kyverno.io/v1 ClusterPolicy is deprecated and will be removed in a future release; migrate to ValidatingPolicy, MutatingPolicy, GeneratingPolicy or ImageValidatingPolicy (policies.kyverno.io), see https://kyverno.io/docs/guides/migration-to-cel/
+> ```
+>
+> Three things to take from it, in order of what matters to you right now:
+>
+> 1. **Nothing is broken.** A warning is not an error. The policy is still accepted, still stored, still enforced by the admission controller exactly as this course describes. v1.19 is the last release with *full* support for the legacy kinds, so everything you do here works end to end.
+> 2. **This course deliberately stays on `ClusterPolicy` and `Policy`.** The KCA exam and its published curriculum are written against these kinds, so that is what you will be examined on. Learning the deprecated-but-examined API is the correct trade-off while the exam papers say so.
+> 3. **The replacement is the CEL-based policy family.** Kyverno is moving toward `ValidatingPolicy`, `MutatingPolicy`, `GeneratingPolicy` and `ImageValidatingPolicy` in the `policies.kyverno.io` group (and `NamespacedValidatingPolicy` and friends for the namespaced equivalents), which express rules in CEL rather than the JMESPath-flavoured YAML you are about to learn. Same job, different syntax. When the exam moves, that is where it will move to — the [migration guide](https://kyverno.io/docs/guides/migration-to-cel/) is the map.
+>
+> You will see these warnings throughout every module and every lab in this series. They are noise, not signal. Read them once here and then ignore them.
 
 ## Anatomy of `spec.rules`
 
