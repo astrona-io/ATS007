@@ -7,7 +7,7 @@
 
 
 
-A kind Kubernetes cluster with **Kyverno v1.13.2** already installed and
+A kind Kubernetes cluster with **Kyverno v1.19.1** (Helm chart 3.9.1) already installed and
 `kubectl` already pointed at it. Seeded with a `cluster-defaults` ConfigMap in
 `platform-config` (a ready-made source for a `generate.clone` rule) and a
 pre-existing Pod in `catalog` (the contrast case for what `mutate` does and

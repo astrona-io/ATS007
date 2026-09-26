@@ -3,7 +3,7 @@
 # and two resource manifests for the learner to evaluate offline.
 set -eu
 
-KYVERNO_CLI_VERSION="v1.13.2"
+KYVERNO_CLI_VERSION="v1.19.1"
 LAB_DIR="/root/lab"
 
 # Release assets are published per-architecture; resolve the host's so the

@@ -7,7 +7,7 @@
 
 
 
-A kind Kubernetes cluster with **Kyverno v1.13.2** already installed and
+A kind Kubernetes cluster with **Kyverno v1.19.1** (Helm chart 3.9.1) already installed and
 `kubectl` already pointed at it, plus three namespaces (`payments`, `catalog`,
 `sandbox`) and a sample Pod to scope rules against. No policies are
 pre-created — writing them is the point. Nothing to submit.

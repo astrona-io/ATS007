@@ -10,7 +10,7 @@ and no pass/fail. Explore, break things, `astrona destroy`, start over.
 
 - A **kind** Kubernetes cluster, context `kind-section-030-module-01-playground`.
   `kubectl` is already pointed at it — there is no VM and no SSH step.
-- **Kyverno v1.13.2**, installed cluster-wide by `bootstrap/prepare.sh`. All four
+- **Kyverno v1.19.1** (Helm chart 3.9.1), installed cluster-wide by `bootstrap/prepare.sh`. All four
   controllers (`kyverno-admission-controller`, `kyverno-background-controller`,
   `kyverno-reports-controller`, `kyverno-cleanup-controller`) are running in the
   `kyverno` namespace, and Kyverno's `MutatingWebhookConfiguration` and

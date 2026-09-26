@@ -10,10 +10,10 @@ and no pass/fail. Explore, break things, `astrona destroy`, start over.
 
 - A **kind** Kubernetes cluster, context `kind-section-020-module-03-playground`.
   `kubectl` is already pointed at it — there is no SSH step and no separate VM.
-- **Kyverno v1.13.2** installed in-cluster, all four controllers rolled out in
+- **Kyverno v1.19.1** (Helm chart 3.9.1) installed in-cluster, all four controllers rolled out in
   the `kyverno` namespace. Most of this module never touches it — it is here so
   you can compare offline evaluation against real admission behaviour.
-- The **`kyverno` CLI v1.13.2** at `/usr/local/bin/kyverno`, installed for the
+- The **`kyverno` CLI v1.19.1** at `/usr/local/bin/kyverno`, installed for the
   node's architecture (amd64 or arm64). This is the standalone binary the module
   is about; it needs no cluster.
 - Sample files in `/root/playground/`:

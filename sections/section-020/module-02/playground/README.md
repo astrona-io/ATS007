@@ -7,7 +7,7 @@
 
 
 
-A kind Kubernetes cluster with Kyverno v1.13.2 already installed, seeded so
+A kind Kubernetes cluster with Kyverno v1.19.1 (Helm chart 3.9.1) already installed, seeded so
 every kind of variable data source has something real behind it: a labelled
 namespace (`tenant-blue`) and an unlabelled one (`tenant-green`) for `apiCall`
 lookups, a `deploy-settings` ConfigMap for `context[].configMap`, and a running

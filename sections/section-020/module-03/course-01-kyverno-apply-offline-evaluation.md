@@ -19,7 +19,7 @@ brew install kyverno
 go install github.com/kyverno/kyverno/cmd/cli/kubectl-kyverno@latest
 
 # Release tarball — pinned version, no package manager needed
-curl -sSL https://github.com/kyverno/kyverno/releases/download/v1.13.2/kyverno-cli_v1.13.2_linux_x86_64.tar.gz \
+curl -sSL https://github.com/kyverno/kyverno/releases/download/v1.19.1/kyverno-cli_v1.19.1_linux_x86_64.tar.gz \
   -o /tmp/kyverno-cli.tar.gz
 tar -xzf /tmp/kyverno-cli.tar.gz -C /usr/local/bin kyverno
 ```
@@ -36,8 +36,8 @@ The tarball route is what CI pipelines and this module's lab use, because pinnin
 > Expect something like:
 >
 > ```text
-> Version: v1.13.2
-> Time: 2024-12-10T09:14:22Z
+> Version: v1.19.1
+> Time: 2026-09-02T11:38:05Z
 > Git commit ID: 9c1f0a2
 > ```
 >
@@ -197,14 +197,14 @@ Because they are separate artifacts, their versions can drift — and when they 
 > Expect something like:
 >
 > ```text
-> Version: v1.13.2
-> Time: 2024-12-10T09:14:22Z
+> Version: v1.19.1
+> Time: 2026-09-02T11:38:05Z
 > Git commit ID: 9c1f0a2
 >
-> ghcr.io/kyverno/kyverno:v1.13.2
+> reg.kyverno.io/kyverno/kyverno:v1.19.1
 > ```
 >
-> Build times and commit IDs vary. What matters is that the two version strings agree — in this playground both are pinned to `v1.13.2`. Where they disagree in a real environment, the cluster is the authority and the CLI is an approximation.
+> Build times and commit IDs vary. What matters is that the two version strings agree — in this playground both are pinned to `v1.19.1`. Where they disagree in a real environment, the cluster is the authority and the CLI is an approximation.
 
 *The CLI embeds the policy engine rather than calling a cluster, which is why `apply` works offline — and why any data that would have come from the cluster has to be handed to it explicitly.*
 

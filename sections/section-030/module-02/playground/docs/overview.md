@@ -10,7 +10,7 @@ and no pass/fail. Explore, break things, `astrona destroy`, start over.
 
 - A **kind** Kubernetes cluster, context `kind-section-030-module-02-playground`.
   `kubectl` is already pointed at it — there is no VM and no SSH step.
-- **Kyverno v1.13.2**, installed cluster-wide by `bootstrap/prepare.sh`, with all
+- **Kyverno v1.19.1** (Helm chart 3.9.1), installed cluster-wide by `bootstrap/prepare.sh`, with all
   four controllers running in the `kyverno` namespace. The
   `PolicyReport`/`ClusterPolicyReport` CRDs are registered and ready to be
   populated.

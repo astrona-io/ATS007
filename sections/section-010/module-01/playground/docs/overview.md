@@ -10,7 +10,7 @@ and no pass/fail. Explore, break things, `astrona destroy`, start over.
 
 - A kind Kubernetes cluster, context `kind-section-010-module-01-playground`.
   `kubectl` is already pointed at it — there is no SSH step.
-- **Kyverno v1.13.2**, installed into the `kyverno` namespace. All four
+- **Kyverno v1.19.1** (Helm chart 3.9.1), installed into the `kyverno` namespace. All four
   controllers (`admission`, `background`, `reports`, `cleanup`) are rolled out
   and ready before the environment hands over to you.
 - Three namespaces to scope rules against: `payments` (labelled

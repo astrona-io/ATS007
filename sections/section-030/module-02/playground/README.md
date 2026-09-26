@@ -7,7 +7,7 @@
 
 
 
-A single-node **kind** Kubernetes cluster with **Kyverno v1.13.2** installed, no
+A single-node **kind** Kubernetes cluster with **Kyverno v1.19.1** (Helm chart 3.9.1) installed, no
 policies, and an already-running non-compliant `legacy-etl` Deployment in the
 `analytics` namespace — a violation that predates any policy, so background
 scanning and `PolicyReport` objects have something real to find. `kubectl` is

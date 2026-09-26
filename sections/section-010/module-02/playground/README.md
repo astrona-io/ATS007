@@ -7,7 +7,7 @@
 
 
 
-A kind Kubernetes cluster with **Kyverno v1.13.2** already installed and
+A kind Kubernetes cluster with **Kyverno v1.19.1** (Helm chart 3.9.1) already installed and
 `kubectl` already pointed at it. Two Deployments are seeded before any policy
 exists: `legacy-reporting` (two containers, no resource requests or limits) and
 `tidy-api` (fully compliant) — so a background scan has both a failure and a

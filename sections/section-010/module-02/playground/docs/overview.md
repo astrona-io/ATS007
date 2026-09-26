@@ -10,7 +10,7 @@ and no pass/fail. Explore, break things, `astrona destroy`, start over.
 
 - A kind Kubernetes cluster, context `kind-section-010-module-02-playground`.
   `kubectl` is already pointed at it — there is no SSH step.
-- **Kyverno v1.13.2**, installed into the `kyverno` namespace, with all four
+- **Kyverno v1.19.1** (Helm chart 3.9.1), installed into the `kyverno` namespace, with all four
   controllers rolled out. The `background` and `reports` controllers matter
   most here: they are what produce `PolicyReport` results for resources that
   already exist.
