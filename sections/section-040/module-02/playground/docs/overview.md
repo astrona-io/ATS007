@@ -10,7 +10,7 @@ and no pass/fail. Explore, break things, `astrona destroy`, start over.
 
 - A **kind Kubernetes cluster** (context `kind-section-040-module-02-playground`),
   with `kubectl` already pointed at it. There is no SSH step and no VM.
-- **Kyverno v1.13.2** in the `kyverno` namespace, patched with
+- **Kyverno v1.19.1** (Helm chart 3.9.1) in the `kyverno` namespace, patched with
   `--allowInsecureRegistry` so its admission controller can fetch signatures
   from the plain-HTTP registry below. (A real cluster would use TLS; this flag
   exists here only because the throwaway registry has no certificate.)

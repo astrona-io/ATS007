@@ -10,7 +10,7 @@ and no pass/fail. Explore, break things, `astrona destroy`, start over.
 
 - A **kind** Kubernetes cluster, context `kind-section-020-module-02-playground`.
   `kubectl` is already pointed at it — there is no SSH step and no separate VM.
-- **Kyverno v1.13.2**, installed cluster-wide, all four controllers rolled out
+- **Kyverno v1.19.1** (Helm chart 3.9.1), installed cluster-wide, all four controllers rolled out
   in the `kyverno` namespace.
 - Namespace **`tenant-blue`**, labelled `cost-center=cc-4417` and
   `tier=internal` — real metadata for a `context[].apiCall` lookup to find.

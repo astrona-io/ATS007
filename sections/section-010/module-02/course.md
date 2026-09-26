@@ -45,6 +45,6 @@ After this module you can:
 
 This module assumes you've completed Module 1, or are already comfortable with `ClusterPolicy`/`Policy` structure and `match`/`exclude`.
 
-The playground linked at the top of this page gives you a kind Kubernetes cluster with `kubectl` already configured and pointed at it — there is no SSH step. Kyverno v1.13.2 is installed and all four of its controllers are running. Two Deployments are already in place, both created *before* any policy exists: `legacy-reporting` in the `legacy` namespace has two containers and sets no resource requests or limits on either, while `tidy-api` in `workloads` sets both. No policies are pre-created.
+The playground linked at the top of this page gives you a kind Kubernetes cluster with `kubectl` already configured and pointed at it — there is no SSH step. Kyverno v1.19.1 (Helm chart 3.9.1) is installed and all four of its controllers are running. Two Deployments are already in place, both created *before* any policy exists: `legacy-reporting` in the `legacy` namespace has two containers and sets no resource requests or limits on either, while `tidy-api` in `workloads` sets both. No policies are pre-created.
 
 Both parts carry **Try it** checkpoints that assume that environment is already up.

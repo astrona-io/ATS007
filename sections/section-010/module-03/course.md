@@ -47,7 +47,7 @@ After this module you can:
 
 This module assumes you've completed Modules 1–2.
 
-The playground linked at the top of this page gives you a kind Kubernetes cluster with `kubectl` already configured and pointed at it — there is no SSH step. Kyverno v1.13.2 is installed with all four controllers running. Two things are seeded for you: a ConfigMap named `cluster-defaults` in the `platform-config` namespace, ready to be cloned, and a Pod named `existing-api` in `catalog` that was created before any policy exists. No policies are pre-created.
+The playground linked at the top of this page gives you a kind Kubernetes cluster with `kubectl` already configured and pointed at it — there is no SSH step. Kyverno v1.19.1 (Helm chart 3.9.1) is installed with all four controllers running. Two things are seeded for you: a ConfigMap named `cluster-defaults` in the `platform-config` namespace, ready to be cloned, and a Pod named `existing-api` in `catalog` that was created before any policy exists. No policies are pre-created.
 
 Both parts carry **Try it** checkpoints that assume that environment is already up.
 

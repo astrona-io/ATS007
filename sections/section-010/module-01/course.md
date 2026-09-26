@@ -41,6 +41,6 @@ After this module you can:
 
 You should be comfortable with basic `kubectl` usage: `kubectl get`, `kubectl apply -f`, `kubectl describe`. No prior Kyverno experience is required.
 
-The playground linked at the top of this page gives you a kind Kubernetes cluster with `kubectl` already configured and pointed at it — there is no SSH step. Kyverno v1.13.2 is already installed and running in the `kyverno` namespace, and three namespaces are waiting for you to scope rules against: `payments` (labelled `env=production`), `catalog` (labelled `env=staging`), and `sandbox` (no labels). A single Pod, `sample-api`, is running in `payments`. No policies are pre-created — writing them is the point.
+The playground linked at the top of this page gives you a kind Kubernetes cluster with `kubectl` already configured and pointed at it — there is no SSH step. Kyverno v1.19.1 (Helm chart 3.9.1) is already installed and running in the `kyverno` namespace, and three namespaces are waiting for you to scope rules against: `payments` (labelled `env=production`), `catalog` (labelled `env=staging`), and `sandbox` (no labels). A single Pod, `sample-api`, is running in `payments`. No policies are pre-created — writing them is the point.
 
 Both parts carry **Try it** checkpoints that assume that environment is already up.

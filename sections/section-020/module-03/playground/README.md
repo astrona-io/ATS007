@@ -7,8 +7,8 @@
 
 
 
-A kind Kubernetes cluster with both Kyverno v1.13.2 in-cluster and the
-standalone `kyverno` CLI v1.13.2 on the node, so you can evaluate a policy
+A kind Kubernetes cluster with both Kyverno v1.19.1 (Helm chart 3.9.1) in-cluster and the
+standalone `kyverno` CLI v1.19.1 on the node, so you can evaluate a policy
 offline and then compare it against real admission behaviour. Seeded with a
 sample policy, a passing and a failing Pod manifest, and a JSON document for
 `kyverno jp` practice, all in `/root/playground/`. No test suite is

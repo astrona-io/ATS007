@@ -11,7 +11,7 @@ and no pass/fail. Explore, break things, `astrona destroy`, start over.
 - A **kind Kubernetes cluster** (context `kind-section-040-module-01-playground`),
   with `kubectl` already pointed at it. There is no SSH step and no VM — you
   work against the cluster directly.
-- **Kyverno v1.13.2**, installed in the `kyverno` namespace. This module does
+- **Kyverno v1.19.1** (Helm chart 3.9.1), installed in the `kyverno` namespace. This module does
   not write a policy, but Kyverno is present so you can look at how it is
   deployed before Module 2 puts it to work.
 - **`crane`** (from `go-containerregistry`) on `PATH` — a small registry client

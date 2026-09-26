@@ -7,7 +7,7 @@
 
 
 
-A single-node **kind** Kubernetes cluster with **Kyverno v1.13.2** installed and
+A single-node **kind** Kubernetes cluster with **Kyverno v1.19.1** (Helm chart 3.9.1) installed and
 **no policies**, so you can watch Kyverno's `MutatingWebhookConfiguration` and
 `ValidatingWebhookConfiguration` `rules` change as you add and remove policies
 yourself. `kubectl` is already pointed at the cluster; there is no SSH step.

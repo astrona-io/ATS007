@@ -7,7 +7,7 @@
 
 
 
-A kind Kubernetes cluster with Kyverno v1.13.2 already installed, so you can
+A kind Kubernetes cluster with Kyverno v1.19.1 (Helm chart 3.9.1) already installed, so you can
 write a policy manifest, apply it, and watch it accept or reject a resource
 without setting anything up first. Seeded with two empty namespaces
 (`storefront`, `warehouse`) and two sample manifests in `/root/playground/`.
