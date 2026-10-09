@@ -1,10 +1,26 @@
+# Course manifest for ATS007 - Fundamentals of Kyverno (Kyverno Certified Associate).
+#
+# One entry per section under `modules:`. Each section lists, in order: its
+# README, then for each module the landing page (course.md), its parts
+# (course-0N-*.md), and right after the part a lab tests, the lab's
+# question.md reading and the `type: lab` entry. The module's wrap-up page
+# comes last. The section knowledge check (quiz.md) and the section capstone
+# close the section. Playgrounds are not listed: the landing page's
+# playground marker shows them. Never list solution.md.
+#
+# Every `path:` is relative to this file.
+
 training:
   id: ATS007
   title: "KCA: Fundamentals of Kyverno"
   description: >
     Training material covering the Fundamentals of Kyverno domain for the
-    Kyverno Certified Associate (KCA) learning path, with hands-on labs
-    for each competency running on a kind Kubernetes cluster.
+    Kyverno Certified Associate (KCA) learning path: policies and rules,
+    YAML manifests, admission controllers and OCI images. Each module pairs a
+    layered reader with an ungraded hands-on playground and a graded practice
+    lab on a kind Kubernetes cluster. Each section closes with an integration
+    capstone.
+    Built and verified against Kyverno v1.19.1 (Helm chart 3.9.1).
 
   certification:
     name: Kyverno Certified Associate
@@ -14,13 +30,14 @@ training:
     weight: 100
 
 modules:
+
   - id: module-010
     title: "Section 010: Kyverno Policies & Rules"
     description: >
       Learn how Kyverno turns policy into ordinary Kubernetes resources:
-      the ClusterPolicy and Policy CRDs, how a rule's match/exclude block
-      selects targets, and the three core rule actions — validate, mutate,
-      and generate — that let a cluster block, rewrite, or spawn resources
+      the ClusterPolicy and Policy kinds, how a rule's match and exclude blocks
+      select targets, and the three core rule actions (validate, mutate and
+      generate) that let a cluster block, rewrite or create resources
       automatically.
 
     content:
@@ -29,76 +46,93 @@ modules:
         path: sections/section-010/README.md
 
       - type: reading
-        title: "Module 1: Kyverno Policy & Rule Anatomy"
+        title: "Kyverno Policy & Rule Anatomy"
         path: sections/section-010/module-01/course.md
-
       - type: reading
-        title: "Module 1.1: ClusterPolicy vs Policy & Rule Anatomy"
+        title: "ClusterPolicy vs Policy & Rule Anatomy"
         path: sections/section-010/module-01/course-01-clusterpolicy-vs-policy-and-rule-anatomy.md
-
       - type: reading
-        title: "Module 1.2: Match, Exclude & Resource Selection"
+        title: "Match, Exclude & Resource Selection"
         path: sections/section-010/module-01/course-02-match-exclude-and-resource-selection.md
-
       - type: reading
         title: Question
         path: sections/section-010/module-01/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-010/module-01/labs/lab-01/solution.md
-
       - type: lab
         title: "ClusterPolicy Label Enforcement Lab"
         path: sections/section-010/module-01/labs/lab-01
+        difficulty: beginner
+        estimated_duration: 15m
+        topic: policies-and-rules
+        task_kind: build
+        tags: [clusterpolicy, match, exclude, validate-pattern, required-labels, enforce-mode, admission-denied]
+        learning_goals:
+          - Write a ClusterPolicy that requires a team label on Pods in one namespace
+          - Exclude a system namespace from the rule with an exclude block
+          - Prove the policy rejects a Pod without the label and admits one with it
+        resources:
+          - name: "Kyverno: Validate Rules"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/validate/
+          - name: "Kyverno: Selecting Resources (match and exclude)"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/match-exclude/
 
       - type: reading
-        title: "Module 2: Validate Rules: Patterns, Deny Logic & foreach"
+        title: "Validate Rules: Patterns, Deny Logic & foreach"
         path: sections/section-010/module-02/course.md
-
       - type: reading
-        title: "Module 2.1: Pattern Validation & Deny Conditions"
+        title: "Pattern Validation & Deny Conditions"
         path: sections/section-010/module-02/course-01-pattern-validation-and-deny-conditions.md
-
       - type: reading
-        title: "Module 2.2: foreach & Background Scans"
+        title: "foreach & Background Scans"
         path: sections/section-010/module-02/course-02-foreach-and-background-scans.md
-
       - type: reading
         title: Question
         path: sections/section-010/module-02/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-010/module-02/labs/lab-01/solution.md
-
       - type: lab
         title: "foreach Validate & Background Scan Lab"
         path: sections/section-010/module-02/labs/lab-01
+        difficulty: intermediate
+        estimated_duration: 25m
+        topic: validate
+        task_kind: build
+        tags: [clusterpolicy, foreach, resource-limits, background-scan, policyreport, enforce-mode]
+        learning_goals:
+          - Write a foreach validate rule that checks requests and limits on every container
+          - Prove new non-compliant Pods are rejected
+          - Find an existing violation in a PolicyReport without changing the workload
+        resources:
+          - name: "Kyverno: Validate Rules"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/validate/
+          - name: "Kyverno: Policy Reports"
+            url: https://kyverno.io/docs/guides/reports/
 
       - type: reading
-        title: "Module 3: Mutate & Generate Rules"
+        title: "Mutate & Generate Rules"
         path: sections/section-010/module-03/course.md
-
       - type: reading
-        title: "Module 3.1: Mutate — patchStrategicMerge & JSON 6902"
+        title: "Mutate: patchStrategicMerge & patchesJson6902"
         path: sections/section-010/module-03/course-01-mutate-patchstrategicmerge-and-json6902.md
-
       - type: reading
-        title: "Module 3.2: Generate — Clone & Synchronize"
+        title: "Generate: Clone & Synchronize"
         path: sections/section-010/module-03/course-02-generate-clone-and-synchronize.md
-
       - type: reading
         title: Question
         path: sections/section-010/module-03/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-010/module-03/labs/lab-01/solution.md
-
       - type: lab
         title: "Mutate & Generate Rules Lab"
         path: sections/section-010/module-03/labs/lab-01
+        difficulty: intermediate
+        estimated_duration: 25m
+        topic: mutate-and-generate
+        task_kind: build
+        tags: [clusterpolicy, patch-strategic-merge, generate-data, synchronize, networkpolicy]
+        learning_goals:
+          - Write a mutate rule that adds a label to every new Pod in a namespace
+          - Write a generate rule that creates a default-deny NetworkPolicy in every new namespace
+        resources:
+          - name: "Kyverno: Mutate Resources"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/mutate/
+          - name: "Kyverno: Generate Resources"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/generate/
 
       - type: reading
         title: "Section 010 Knowledge Check: Kyverno Policies & Rules"
@@ -107,24 +141,35 @@ modules:
       - type: reading
         title: Question
         path: sections/section-010/capstone/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-010/capstone/labs/lab-01/solution.md
-
       - type: lab
         title: "Kyverno Policies & Rules Capstone Lab"
         path: sections/section-010/capstone/labs/lab-01
+        difficulty: advanced
+        estimated_duration: 40m
+        topic: policies-and-rules
+        task_kind: build
+        tags: [clusterpolicy, validate-pattern, required-labels, patch-strategic-merge, default-values, generate-clone, synchronize]
+        learning_goals:
+          - Combine a validate, a mutate and a generate policy on one cluster
+          - Prove a Deployment is admitted and its containers get a default imagePullPolicy
+          - Prove a shared ConfigMap is cloned into a new namespace
+        resources:
+          - name: "Kyverno: Validate Rules"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/validate/
+          - name: "Kyverno: Mutate Resources"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/mutate/
+          - name: "Kyverno: Generate Resources"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/generate/
 
   - id: module-020
     title: "Section 020: YAML Manifests"
     description: >
-      Treat a Kyverno policy as what it really is — a plain Kubernetes
-      manifest. Learn the apiVersion/kind/metadata/spec anatomy shared with
-      every other Kubernetes object, how to apply and inspect policies with
-      kubectl, how variables, context, and JMESPath let a policy read
-      live cluster data instead of hardcoding values, and how the Kyverno
-      CLI validates policies against manifests with no cluster at all.
+      Treat a Kyverno policy as what it really is: a plain Kubernetes
+      manifest. Learn the apiVersion, kind, metadata and spec anatomy shared
+      with every other Kubernetes object, how to apply and inspect policies
+      with kubectl, how variables, context and JMESPath let a policy read live
+      cluster data, and how the Kyverno command-line tool tests policies
+      against manifests with no cluster at all.
 
     content:
       - type: reading
@@ -132,76 +177,91 @@ modules:
         path: sections/section-020/README.md
 
       - type: reading
-        title: "Module 1: Kyverno Policy YAML Anatomy & Applying Manifests"
+        title: "Kyverno Policy YAML Anatomy & Applying Manifests"
         path: sections/section-020/module-01/course.md
-
       - type: reading
-        title: "Module 1.1: apiVersion, kind, metadata & spec"
+        title: "apiVersion, kind, metadata & spec"
         path: sections/section-020/module-01/course-01-apiversion-kind-metadata-spec.md
-
       - type: reading
-        title: "Module 1.2: Applying & Inspecting with kubectl"
+        title: "Applying & Inspecting with kubectl"
         path: sections/section-020/module-01/course-02-applying-and-inspecting-with-kubectl.md
-
       - type: reading
         title: Question
         path: sections/section-020/module-01/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-020/module-01/labs/lab-01/solution.md
-
       - type: lab
         title: "Namespaced Policy Authoring Lab"
         path: sections/section-020/module-01/labs/lab-01
+        difficulty: beginner
+        estimated_duration: 15m
+        topic: manifests
+        task_kind: build
+        tags: [namespaced-policy, yaml-anatomy, kubectl-apply, validate-pattern, enforce-mode, admission-denied]
+        learning_goals:
+          - Write a namespaced Policy from scratch that denies LoadBalancer Services
+          - Prove a LoadBalancer Service is rejected and a ClusterIP Service is admitted
+        resources:
+          - name: "Kyverno: ClusterPolicy and Policy overview"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/overview/
+          - name: "Kyverno: Validate Rules"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/validate/
 
       - type: reading
-        title: "Module 2: Variables, Context & JMESPath in Kyverno YAML"
+        title: "Variables, Context & JMESPath in Kyverno YAML"
         path: sections/section-020/module-02/course.md
-
       - type: reading
-        title: "Module 2.1: Variables & JMESPath Basics"
+        title: "Variables & JMESPath Basics"
         path: sections/section-020/module-02/course-01-variables-and-jmespath-basics.md
-
       - type: reading
-        title: "Module 2.2: Context — configMap & apiCall"
+        title: "Context: configMap & apiCall"
         path: sections/section-020/module-02/course-02-context-configmap-and-apicall.md
-
       - type: reading
         title: Question
         path: sections/section-020/module-02/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-020/module-02/labs/lab-01/solution.md
-
       - type: lab
         title: "Context & Variables Validation Lab"
         path: sections/section-020/module-02/labs/lab-01
+        difficulty: intermediate
+        estimated_duration: 25m
+        topic: variables-and-context
+        task_kind: build
+        tags: [namespaced-policy, context-configmap, variables, jmespath, deny-conditions, custom-message]
+        learning_goals:
+          - Load an allow-list from a ConfigMap with a context entry
+          - Reject a Pod whose env label is not on the list, naming the bad value in the message
+        resources:
+          - name: "Kyverno: External Data Sources"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/external-data-sources/
+          - name: "Kyverno: Variables"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/variables/
 
       - type: reading
-        title: "Module 3: Validating Manifests with the Kyverno CLI"
+        title: "Validating Manifests with the Kyverno CLI"
         path: sections/section-020/module-03/course.md
-
       - type: reading
-        title: "Module 3.1: kyverno apply — Offline Evaluation"
+        title: "`kyverno apply`: Offline Evaluation"
         path: sections/section-020/module-03/course-01-kyverno-apply-offline-evaluation.md
-
       - type: reading
-        title: "Module 3.2: kyverno test Suites & jp"
+        title: "`kyverno test` Suites & `jp`"
         path: sections/section-020/module-03/course-02-kyverno-test-suites-and-jp.md
-
       - type: reading
         title: Question
         path: sections/section-020/module-03/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-020/module-03/labs/lab-01/solution.md
-
       - type: lab
         title: "Kyverno CLI Manifest Validation Lab"
         path: sections/section-020/module-03/labs/lab-01
+        difficulty: beginner
+        estimated_duration: 20m
+        topic: kyverno-cli
+        task_kind: build
+        tags: [kyverno-apply, kyverno-test, offline-testing, clusterpolicy, required-labels]
+        learning_goals:
+          - Evaluate a policy against two manifests offline with kyverno apply
+          - Write a kyverno-test.yaml that expects one pass and one fail, and prove it with kyverno test
+        resources:
+          - name: "Kyverno CLI: kyverno apply"
+            url: https://kyverno.io/docs/kyverno-cli/reference/kyverno_apply/
+          - name: "Kyverno CLI: kyverno test"
+            url: https://kyverno.io/docs/kyverno-cli/reference/kyverno_test/
 
       - type: reading
         title: "Section 020 Knowledge Check: YAML Manifests"
@@ -210,23 +270,31 @@ modules:
       - type: reading
         title: Question
         path: sections/section-020/capstone/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-020/capstone/labs/lab-01/solution.md
-
       - type: lab
         title: "YAML Manifests Capstone Lab"
         path: sections/section-020/capstone/labs/lab-01
+        difficulty: advanced
+        estimated_duration: 35m
+        topic: variables-and-context
+        task_kind: build
+        tags: [namespaced-policy, context-apicall, jmespath, variables, deny-conditions, custom-message]
+        learning_goals:
+          - Read a namespace label at admission time with an apiCall context entry
+          - Reject a Pod whose cost-center label does not match, naming both values in the message
+        resources:
+          - name: "Kyverno: External Data Sources"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/external-data-sources/
+          - name: "Kyverno: JMESPath"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/jmespath/
 
   - id: module-030
     title: "Section 030: Admission Controllers"
     description: >
       Understand the Kubernetes admission control model that Kyverno plugs
-      into: the mutating-then-validating webhook pipeline every write
-      request passes through, how Kyverno auto-manages its own webhook
-      configuration, and how Enforce/Audit modes and PolicyReports turn
-      that pipeline into a governance tool.
+      into: the mutating-then-validating webhook pipeline every write request
+      passes through, how Kyverno manages its own webhook configuration, and
+      how Enforce and Audit modes and PolicyReports turn that pipeline into a
+      governance tool.
 
     content:
       - type: reading
@@ -234,52 +302,62 @@ modules:
         path: sections/section-030/README.md
 
       - type: reading
-        title: "Module 1: The Kubernetes Admission Control Model"
+        title: "The Kubernetes Admission Control Model"
         path: sections/section-030/module-01/course.md
-
       - type: reading
-        title: "Module 1.1: API Request Lifecycle & Webhook Types"
+        title: "The API Request Lifecycle & Webhook Types"
         path: sections/section-030/module-01/course-01-api-request-lifecycle-and-webhook-types.md
-
       - type: reading
-        title: "Module 1.2: Mutating vs Validating Webhooks"
+        title: "Mutating vs Validating Webhooks"
         path: sections/section-030/module-01/course-02-mutating-vs-validating-webhooks.md
-
       - type: reading
         title: Question
         path: sections/section-030/module-01/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-030/module-01/labs/lab-01/solution.md
-
       - type: lab
         title: "Auto-Managed Webhook Configuration Lab"
         path: sections/section-030/module-01/labs/lab-01
+        difficulty: beginner
+        estimated_duration: 20m
+        topic: admission-webhooks
+        task_kind: build
+        tags: [admission-webhook, webhook-configuration, clusterpolicy, required-labels, enforce-mode, admission-denied]
+        learning_goals:
+          - Show that Kyverno adds ConfigMaps to its validating webhook when a policy needs them
+          - Prove the policy rejects an unlabelled ConfigMap and admits a labelled one
+        resources:
+          - name: "Kyverno: How Kyverno Works"
+            url: https://kyverno.io/docs/introduction/how-kyverno-works/
+          - name: "Kubernetes: Dynamic Admission Control"
+            url: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
 
       - type: reading
-        title: "Module 2: Kyverno as a Dynamic Admission Controller"
+        title: "Kyverno as a Dynamic Admission Controller: Enforce, Audit & Reports"
         path: sections/section-030/module-02/course.md
-
       - type: reading
-        title: "Module 2.1: Enforce vs Audit & PolicyReports"
+        title: "Enforce vs Audit & PolicyReports"
         path: sections/section-030/module-02/course-01-enforce-vs-audit-and-policyreports.md
-
       - type: reading
-        title: "Module 2.2: Background Scanning & Controllers"
+        title: "Background Scanning & Controllers"
         path: sections/section-030/module-02/course-02-background-scanning-and-controllers.md
-
       - type: reading
         title: Question
         path: sections/section-030/module-02/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-030/module-02/labs/lab-01/solution.md
-
       - type: lab
         title: "Audit-to-Enforce Rollout Lab"
         path: sections/section-030/module-02/labs/lab-01
+        difficulty: intermediate
+        estimated_duration: 25m
+        topic: audit-and-reports
+        task_kind: migration
+        tags: [audit-mode, enforce-mode, policyreport, background-scan, clusterpolicy, admission-denied]
+        learning_goals:
+          - Roll out a policy in Audit mode and read the existing violation in a PolicyReport
+          - Switch the policy to Enforce and prove new violations are rejected
+        resources:
+          - name: "Kyverno: Policy Reports"
+            url: https://kyverno.io/docs/guides/reports/
+          - name: "Kyverno: Policy Settings"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/policy-settings/
 
       - type: reading
         title: "Section 030 Knowledge Check: Admission Controllers"
@@ -288,22 +366,32 @@ modules:
       - type: reading
         title: Question
         path: sections/section-030/capstone/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-030/capstone/labs/lab-01/solution.md
-
       - type: lab
         title: "Admission Controllers Capstone Lab"
         path: sections/section-030/capstone/labs/lab-01
+        difficulty: advanced
+        estimated_duration: 40m
+        topic: audit-and-reports
+        task_kind: migration
+        tags: [webhook-configuration, audit-mode, enforce-mode, policyreport, background-scan, admission-denied]
+        learning_goals:
+          - Confirm the webhook covers Deployments and read an Audit result in a PolicyReport
+          - Switch to Enforce and prove an unlabelled Deployment is rejected and a labelled one admitted
+        resources:
+          - name: "Kyverno: How Kyverno Works"
+            url: https://kyverno.io/docs/introduction/how-kyverno-works/
+          - name: "Kyverno: Policy Reports"
+            url: https://kyverno.io/docs/guides/reports/
+          - name: "Kyverno: Policy Settings"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/policy-settings/
 
   - id: module-040
     title: "Section 040: OCI Images"
     description: >
       Close the loop on supply-chain trust: the OCI image format and why a
-      digest, not a tag, is the only immutable reference to what actually
-      runs, then how Kyverno's verifyImages rule enforces Cosign signatures
-      and attestations at admission time and rewrites tags to digests.
+      digest, not a tag, is the only fixed reference to what actually runs,
+      then how Kyverno's verifyImages rule enforces Cosign signatures at
+      admission time and rewrites tags to digests.
 
     content:
       - type: reading
@@ -311,52 +399,64 @@ modules:
         path: sections/section-040/README.md
 
       - type: reading
-        title: "Module 1: OCI Image Fundamentals & Supply Chain Risk"
+        title: "OCI Image Fundamentals & Supply Chain Risk"
         path: sections/section-040/module-01/course.md
-
       - type: reading
-        title: "Module 1.1: OCI Manifests, Digests vs Tags"
+        title: "OCI Manifests, Digests vs. Tags"
         path: sections/section-040/module-01/course-01-oci-manifests-digests-vs-tags.md
-
       - type: reading
-        title: "Module 1.2: Signing & Provenance — Cosign & SLSA"
+        title: "Signing & Provenance: Cosign and SLSA"
         path: sections/section-040/module-01/course-02-signing-and-provenance-cosign-and-slsa.md
-
       - type: reading
         title: Question
         path: sections/section-040/module-01/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-040/module-01/labs/lab-01/solution.md
-
       - type: lab
         title: "Digest Pinning Lab"
         path: sections/section-040/module-01/labs/lab-01
+        difficulty: beginner
+        estimated_duration: 20m
+        topic: image-digests
+        task_kind: migration
+        tags: [image-tag, image-digest, digest-pinning, crane, oci-manifest]
+        learning_goals:
+          - Find the digest a running Pod actually pulled
+          - Pin a Deployment to that digest and prove the rollout stays healthy
+        resources:
+          - name: "Kubernetes: Images"
+            url: https://kubernetes.io/docs/concepts/containers/images/
+          - name: "OCI Image Manifest Specification"
+            url: https://github.com/opencontainers/image-spec/blob/main/manifest.md
+          - name: "crane command reference"
+            url: https://github.com/google/go-containerregistry/blob/main/cmd/crane/doc/crane.md
 
       - type: reading
-        title: "Module 2: Verifying Images with Kyverno verifyImages"
+        title: "Verifying Images with Kyverno verifyImages"
         path: sections/section-040/module-02/course.md
-
       - type: reading
-        title: "Module 2.1: verifyImages Rule Anatomy & Attestors"
+        title: "verifyImages Rule Anatomy & Attestors"
         path: sections/section-040/module-02/course-01-verifyimages-rule-anatomy-and-attestors.md
-
       - type: reading
-        title: "Module 2.2: mutateDigest & Required Attestations"
+        title: "mutateDigest & Required Attestations"
         path: sections/section-040/module-02/course-02-mutatedigest-and-required-attestations.md
-
       - type: reading
         title: Question
         path: sections/section-040/module-02/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-040/module-02/labs/lab-01/solution.md
-
       - type: lab
         title: "Cosign Image Verification Lab"
         path: sections/section-040/module-02/labs/lab-01
+        difficulty: advanced
+        estimated_duration: 35m
+        topic: image-verification
+        task_kind: build
+        tags: [verify-images, cosign, attestors, mutate-digest, in-cluster-registry, enforce-mode]
+        learning_goals:
+          - Write a verifyImages rule that requires a Cosign signature from a known public key
+          - Prove an unsigned image is rejected and a signed image is admitted and rewritten to a digest
+        resources:
+          - name: "Kyverno: Verify Images"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/verify-images/overview/
+          - name: "Kyverno: Verify Images with Sigstore"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/verify-images/sigstore/
 
       - type: reading
         title: "Section 040 Knowledge Check: OCI Images"
@@ -365,21 +465,30 @@ modules:
       - type: reading
         title: Question
         path: sections/section-040/capstone/labs/lab-01/question.md
-
-      - type: reading
-        title: Solution Walkthrough
-        path: sections/section-040/capstone/labs/lab-01/solution.md
-
       - type: lab
         title: "OCI Images Capstone Lab"
         path: sections/section-040/capstone/labs/lab-01
+        difficulty: advanced
+        estimated_duration: 45m
+        topic: image-verification
+        task_kind: build
+        tags: [image-digest, digest-pinning, crane, verify-images, cosign, mutate-digest, in-cluster-registry]
+        learning_goals:
+          - Pin a running Deployment to the digest it actually pulled
+          - Enforce Cosign signatures with digest rewriting and prove both outcomes
+        resources:
+          - name: "crane command reference"
+            url: https://github.com/google/go-containerregistry/blob/main/cmd/crane/doc/crane.md
+          - name: "Kyverno: Verify Images"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/verify-images/overview/
+          - name: "Kyverno: Verify Images with Sigstore"
+            url: https://kyverno.io/docs/policy-types/cluster-policy/verify-images/sigstore/
 
   - id: module-050
     title: "KCA Fundamentals of Kyverno Certification Quiz"
     description: >
-      A comprehensive, scenario-based final assessment covering all 9
-      modules across the 4 Fundamentals of Kyverno sections, simulating
-      exam-style pressure.
+      A scenario-based final assessment covering all 10 modules across the 4
+      Fundamentals of Kyverno sections, in exam-style conditions.
 
     content:
       - type: reading
