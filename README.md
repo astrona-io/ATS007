@@ -8,16 +8,6 @@ Kyverno turns policy into ordinary Kubernetes resources — no separate policy l
 
 ---
 
-## The Symmetrical 1:1:1 Learning Framework
-
-To make learning intuitive, digestible, and robust, this curriculum is built around a symmetrical **1:1:1 educational architecture**:
-
-1.  **The Textbook Lesson (`sections/section-XXX/module-YY/course.md`):** Narrative, book-style chapters written in a warm, expert "teacher's voice" that explain *why* Kyverno behaves the way it does, using real-world metaphors, inline YAML breakdowns, and clear diagrams.
-2.  **The Interactive Quiz (`sections/section-XXX/quiz.md`):** A scenario-based theoretical knowledge check testing diagnostic reasoning, complete with collapsible answers and technical explanation keys.
-3.  **The Dedicated Laboratory (`sections/section-XXX/module-YY/`, plus a `sections/section-XXX/capstone/` per section):** A live **kind** Kubernetes cluster sandbox launched instantly via the `astrona` CLI, where you write and apply real Kyverno policy and validate your cluster's state using automated grading scripts.
-
----
-
 ## Complete Curriculum & Lab Mapping
 
 The training series is divided into **4 main sections** covering **10 focused modules**, **10 graded module labs**, and **4 comprehensive Section Capstone Challenges**:
