@@ -1,9 +1,21 @@
-# Kyverno Policies & Rules Integration Capstone
+---
+estimated_duration: 40m
+---
 
-Welcome to the Section 010 Capstone. This challenge combines validate, mutate, and generate rules into one integrated task, mirroring the kind of layered policy set a real platform team maintains.
+# Kyverno Policies & Rules Capstone Lab
 
-## Launching the Lab
-Run the following command in your terminal to boot the kind Kubernetes cluster:
-```bash
-astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-010/capstone/labs/lab-01
+Astronaut, this capstone joins validate, mutate and generate rules into one task, the kind of layered rule set a real platform team looks after.
+
+## What is in the lab
+
+- A `kind` Kubernetes cluster with **Kyverno v1.19.1** installed in the `kyverno` namespace.
+- The `checkout` namespace, and the `platform-shared` namespace with the ConfigMap `shared-app-config`.
+- No policies. Writing all three is the task.
+
+## Run it
+
+```sh
+astrona run --git ssh://git@github.com/astrona-io/ATS007.git -c sections/section-010/capstone/labs/lab-01
+astrona submit -c sections/section-010/capstone/labs/lab-01
+astrona destroy ats-007-lab-004
 ```

@@ -1,38 +1,39 @@
-# Part 2 — foreach & Background Scans
+# foreach & Background Scans
 
-> Prerequisite: [Part 1 — Pattern Validation & Deny Conditions](./course-01-pattern-validation-and-deny-conditions.md). Next: [Module 3 — Mutate & Generate Rules](../module-03/course.md).
-
-Part 1's `pattern` and `deny` both check fields you can name in advance. This part covers the two cases that breaks down for: a list whose length you don't know, and a resource that was already in the cluster before your policy existed.
+Astronaut, `pattern` and `deny` both check fields you can name in advance. This part covers the two cases where that breaks down: a list whose length you do not know, and an object that was already in the cluster before your policy existed.
 
 ## The problem with lists of unknown length
 
-A Pod can have one container or a dozen. A pattern written against `spec.containers[0]` only ever checks the first one — the second, third, and every container after it are invisible to that pattern. There is no fixed-index pattern that safely covers "every container, however many there are."
+A Pod can have one container or a dozen. A pattern written against `spec.containers[0]` only ever checks the first one. The second, the third and every container after that are invisible to it. No fixed-position pattern safely covers "every container, however many there are".
 
-The playground makes this concrete. Its two seeded Deployments were both created *before* any policy existed, and they are deliberate opposites: `legacy-reporting` in the `legacy` namespace violates the constraint this module keeps returning to — every container should declare CPU and memory requests and limits — while `tidy-api` in `workloads` satisfies it. The violating one also has *two* containers, which is the detail that makes `foreach` matter: a rule that inspects only one container in a two-container Pod passes something it should have caught.
+Your playground makes this concrete. Its two Deployments were created *before* any policy existed, and they are opposites on purpose. `legacy-reporting` in `legacy` breaks the rule this module keeps coming back to (every container should set CPU and memory requests and limits). `tidy-api` in `workloads` follows it. The failing one also has *two* containers, and that is why `foreach` matters: a rule that only looks at one container in a two-container Pod passes something it should have caught.
 
-> [!TIP]
-> **Try it — see which containers declare resources**
->
-> ```sh
-> kubectl -n legacy get deploy legacy-reporting \
->   -o jsonpath='{range .spec.template.spec.containers[*]}{.name}{"\t"}{.resources}{"\n"}{end}'
-> kubectl -n workloads get deploy tidy-api \
->   -o jsonpath='{range .spec.template.spec.containers[*]}{.name}{"\t"}{.resources}{"\n"}{end}'
-> ```
->
-> Expect something like:
->
-> ```text
-> api	{}
-> sidecar-logger	{}
-> api	{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}
-> ```
->
-> Both containers of `legacy-reporting` report an empty `resources` object; `tidy-api`'s single container is fully specified. These are the two outcomes any rule you write in this module should be able to tell apart.
+<!-- astrona:playground:renew -->
 
-## `foreach`: one rule, applied per item
+### See which containers set resources
 
-`foreach` solves exactly this: it iterates over a list-valued field and applies a pattern (or a deny condition) to every element in turn.
+Print each container's name and its `resources` for both Deployments:
+
+```sh
+kubectl -n legacy get deploy legacy-reporting \
+  -o jsonpath='{range .spec.template.spec.containers[*]}{.name}{"\t"}{.resources}{"\n"}{end}'
+kubectl -n workloads get deploy tidy-api \
+  -o jsonpath='{range .spec.template.spec.containers[*]}{.name}{"\t"}{.resources}{"\n"}{end}'
+```
+
+You should see something like:
+
+```text
+api	{}
+sidecar-logger	{}
+api	{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}
+```
+
+Both containers of `legacy-reporting` show an empty `resources` object. The one container of `tidy-api` has everything set. Any rule you write in this module should be able to tell these two apart.
+
+## `foreach`: one rule, applied to every item
+
+`foreach` solves exactly this problem. It walks through a list field and applies a pattern (or a deny condition) to every item in turn, the way an inspector walks through every module of a ship, one by one.
 
 ```yaml
 validate:
@@ -49,76 +50,99 @@ validate:
           memory: "?*"
 ```
 
-`list` is a JMESPath expression pointing at the array to iterate — here, every container in the incoming Pod's spec. Inside the loop, `pattern` is checked against each element (each container) independently. A Pod with five containers where only the third is missing `resources.limits.memory` still fails the rule, and Kyverno's error message identifies which element failed.
+`list` is a JMESPath expression that points at the list to walk through: here, every container in the incoming Pod. Inside the loop, Kyverno checks `pattern` against each container on its own. A Pod with five containers where only the third is missing `resources.limits.memory` still fails the rule, and Kyverno's error message says which item failed.
 
-> [!TIP]
-> **Try it — a multi-container failure**
->
-> ```sh
-> kubectl run multi --image=nginx:alpine --dry-run=client -o yaml \
->   | kubectl apply -f -
-> ```
->
-> A single-container Pod with no resources set will fail this rule for its one container. Add a second container by hand with resources set correctly on the first but not the second, and Kyverno's rejection message will point specifically at the failing container's index. Clean up with `kubectl delete pod multi --ignore-not-found`.
+### Try a multi-container failure
+
+If a policy with this `foreach` rule is active, create a Pod with no resources at all:
+
+```sh
+kubectl run multi --image=nginx:alpine --dry-run=client -o yaml \
+  | kubectl apply -f -
+```
+
+A single-container Pod with no resources fails the rule for its one container. Add a second container by hand, with resources set on the first container but not on the second, and Kyverno's rejection points at the failing container's position in the list. Clean up with `kubectl delete pod multi --ignore-not-found`.
 
 ## Background scanning
 
-Everything so far happens at admission time — when a resource is created or updated. But a cluster almost never starts empty; it already has Deployments, Pods, and other objects running before you ever write your first policy. `legacy-reporting` is exactly that case: it was created before any policy existed, so admission-time evaluation will never see it, and it is precisely the resource you most want to know about.
+Everything so far happens at admission time, when an object is created or updated. But a cluster almost never starts empty. Deployments, Pods and other objects are already running before you write your first policy. `legacy-reporting` is exactly that case. It was created before any policy existed, so admission will never see it again unless someone changes it. Yet it is exactly the object you most want to know about.
 
-`background: true` addresses this. Kyverno periodically re-evaluates a validate rule against resources that already exist, independent of admission control, and records the outcome as a `PolicyReport` (namespaced) or `ClusterPolicyReport` (cluster-scoped) object.
+`background: true` handles this. Kyverno re-checks a validate rule against objects that already exist, separately from admission, and records the result in a `PolicyReport` (for one namespace) or a `ClusterPolicyReport` (for cluster-scoped objects). Think of it as patrol inspections of ships that are already flying, written into each planet's inspection log.
 
-That work is not done by the admission controller. Two separate controllers handle it, and confirming they are running is the first thing to check when reports do not appear.
+### Find the controllers that produce reports
 
-> [!TIP]
-> **Try it — find the controllers that produce reports**
->
-> ```sh
-> kubectl -n kyverno get deployments
-> ```
->
-> Expect something like:
->
-> ```text
-> NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
-> kyverno-admission-controller    1/1     1            1           6m
-> kyverno-background-controller   1/1     1            1           6m
-> kyverno-cleanup-controller      1/1     1            1           6m
-> kyverno-reports-controller      1/1     1            1           6m
-> ```
->
-> Ages vary. The `admission` controller handles live requests; `background` re-scans existing resources and `reports` turns those results into report objects. If a background scan result never shows up, these last two are where to look — not the admission controller.
+The admission controller does not do this work. Two other Kyverno controllers do, and checking that they run is the first step when reports do not appear. List Kyverno's Deployments:
 
-The reports themselves are ordinary namespaced resources you query like anything else. On a fresh playground there is nothing to report yet, which makes the empty state worth seeing first so the populated state later is unambiguous.
+```sh
+kubectl -n kyverno get deployments
+```
 
-> [!TIP]
-> **Try it — the reporting surface before any policy exists**
->
-> ```sh
-> kubectl get policyreport --all-namespaces
-> ```
->
-> Expect something like:
->
-> ```text
-> No resources found
-> ```
->
-> Empty, because no policy has been applied. After you apply an `Audit`-mode policy with `background: true`, re-running this is how you find out what it made of `legacy-reporting` — without that Deployment ever being blocked, restarted, or modified.
+You should see something like:
 
-Pairing `background: true` with `validationFailureAction: Audit` is the standard way to safely roll out a new rule: you see exactly which existing resources would fail it, without breaking anything, before ever flipping to `Enforce`.
+```text
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
+kyverno-admission-controller    1/1     1            1           6m
+kyverno-background-controller   1/1     1            1           6m
+kyverno-cleanup-controller      1/1     1            1           6m
+kyverno-reports-controller      1/1     1            1           6m
+```
+
+The ages will differ. The admission controller is the inspector at the launch gate: it handles live requests. The background controller does the patrol inspections of existing objects, and the reports controller is the clerk who writes them into report objects. If a background result never shows up, look at these last two, not at the admission controller.
+
+### See the empty inspection log
+
+Reports are ordinary namespaced objects you list like anything else. On a fresh playground there is nothing to report yet. Seeing the empty state first makes the filled state later easy to recognise:
+
+```sh
+kubectl get policyreport --all-namespaces
+```
+
+You should see something like:
+
+```text
+No resources found
+```
+
+It is empty because no policy exists. After you apply an `Audit` policy with `background: true`, running this again shows what it made of `legacy-reporting`, without that Deployment ever being blocked, restarted or changed.
+
+Pairing `background: true` with `validationFailureAction: Audit` is the standard safe way to roll out a new rule. You see exactly which existing objects would fail it, without breaking anything, before you switch to `Enforce`.
+
+## Common pitfalls
 
 > [!WARNING]
-> **Common pitfalls**
->
-> - **Assuming a check written for one container covers them all.** A Pod's `containers` field is a variable-length list, and a rule that does not explicitly iterate it can pass a Pod whose second or third container violates the constraint. `foreach` makes per-element evaluation explicit — and gives you a per-element failure message instead of one opaque verdict for the whole Pod.
-> - **Expecting `background: true` to block anything.** Background scanning only ever reports. Only admission-time `Enforce` blocks, and admission control only ever sees resources at the moment they are created or updated — never resources that are just sitting there already.
-> - **Reading `Audit` as "the policy is off".** An `Audit` policy is fully evaluated; it records the result rather than rejecting the request. Non-compliant resources really are being judged — the verdict just lands in a `PolicyReport` instead of in the user's terminal.
-> - **Expecting background results instantly.** Background scanning runs on an interval, not on a watch. A report that is not there yet may simply not have been produced yet; give the scan time before concluding the rule is wrong.
-> - **Forgetting that `background: true` restricts what a rule may reference.** A rule evaluated outside an admission request has no `AdmissionReview` to read from, so variables that depend on request-time context (such as the requesting user) are not available to it. Rules that need those must run admission-only.
+> - **Assuming a check written for one container covers them all.** `containers` is a list of any length. A rule that does not walk through it can pass a Pod whose second or third container breaks the rule. `foreach` checks every item and gives a failure message per item.
+> - **Expecting `background: true` to block anything.** Background scanning only reports. Only admission in `Enforce` mode blocks, and admission only sees objects at the moment they are created or updated.
+> - **Reading `Audit` as "the policy is off".** An `Audit` policy is fully checked. Failing objects really are judged; the verdict just lands in a `PolicyReport` instead of in the user's terminal.
+> - **Expecting background results at once.** Background scans and reports take time. If a report is not there yet, wait a little and run the command again before deciding the rule is wrong.
+> - **Using request-only data in a background rule.** A rule checked outside an admission request has no `AdmissionReview` (the request mission control sends to the inspector) to read from. Variables that depend on the request, such as the requesting user, are not available, so rules that need them must run at admission only.
 
-> *Admission control judges what is arriving; background scanning judges what is already there — and only the first one can say no.*
+> *Admission judges what is arriving; background scanning judges what is already there, and only the first one can say no.*
 
-## Reference
+## Your mission: foreach Validate & Background Scan
 
-- `kubectl explain clusterpolicy.spec.rules.validate.foreach` — the live schema for `foreach` on your installed version.
-- `kubectl get policyreport -o yaml` — the full structure of a background scan result, including per-rule pass/fail/warn counts.
+You can now check every container in a Pod with `foreach` and read background scan results from a `PolicyReport`. The mission asks you to write a `foreach` rule that requires requests and limits on every container in one namespace, prove a new failing Pod is blocked, and find an existing Deployment's violation in the report without touching that Deployment.
+
+The mission runs in its own training solar system, so first pause your playground. Nothing in it is lost:
+
+```sh
+astrona stop section-010-module-02-playground
+```
+
+Then start the mission:
+
+```sh
+astrona run --git ssh://git@github.com/astrona-io/ATS007.git -c sections/section-010/module-02/labs/lab-01
+```
+
+Read the task in [question.md](./labs/lab-01/question.md) and solve it on your own first. When you think you are done, send it for grading:
+
+```sh
+astrona submit -c sections/section-010/module-02/labs/lab-01
+```
+
+When the mission is done, remove it and wake your playground up again:
+
+```sh
+astrona destroy ats-007-lab-002
+astrona start section-010-module-02-playground
+```

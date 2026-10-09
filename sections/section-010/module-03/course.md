@@ -1,56 +1,64 @@
 # Mutate & Generate Rules
 
-<!-- astrona:playground -->
-> [!NOTE]
-> 🧪 **Hands-on playground for this module** — a clean, throwaway machine to explore on. No task, no grading. Folder: [`playground/`](https://github.com/astrona-io/ATS007/tree/main/sections/section-010/module-03/playground)
->
-> ```sh
-> astrona run --git ssh://git@github.com/astrona-io/ATS007.git -c sections/section-010/module-03/playground
-> astrona destroy section-010-module-03-playground
-> ```
-
-Validate rules only ever say yes or no. This module covers the two Kyverno rule types that actively change the cluster on your behalf: `mutate` rules, which rewrite an incoming resource before it's persisted, and `generate` rules, which create entirely new, separate resources in response to a trigger. Together they let you enforce sane defaults and cluster-wide scaffolding without ever asking a developer to remember to add them by hand.
+Astronaut, validate rules only ever say yes or no. This module covers the two Kyverno rule types that change the cluster for you. `mutate` rules change an incoming object before it is stored: the ground crew adjusts the ship before launch. `generate` rules create new, separate objects when a trigger appears: a standard supply depot is built on every new planet. Together they give you sensible defaults and cluster-wide setup, without asking anyone to remember to add them by hand.
 
 ```mermaid
-flowchart TD
-    A["incoming resource"] --> B{"mutate rule?"}
-    B -->|patchStrategicMerge| C["overlay merged onto the resource"]
-    B -->|patchesJson6902| D["precise RFC 6902 patch ops"]
-    C --> E["mutated resource persisted"]
-    D --> E
-    F["trigger resource created<br/>e.g. new Namespace"] --> G["generate rule"]
-    G -->|clone| H["copy of an existing source resource"]
-    G -->|inline| I["brand-new resource from the policy"]
-    H --> J{"synchronize: true?"}
-    I --> J
-    J -->|yes| K["Kyverno reverts drift<br/>continuously"]
-    J -->|no| L["generated once, then left alone"]
+flowchart TB
+    IN["incoming object"] -->|"patchStrategicMerge"| MS["overlay merged in"]
+    IN -->|"patchesJson6902"| MJ["exact patch steps"]
+    MS --> ST["changed object stored"]
+    MJ --> ST
+    TR["new Namespace"] -->|"generate"| G["generate rule"]
+    G -->|"clone"| CL["copy of a source object"]
+    G -->|"data"| DA["new object from the policy"]
+    CL -->|"synchronize: true"| SY["kept in step"]
+    DA -->|"synchronize: true"| SY
 ```
 
-## How this module is organised
-
-1. **[Part 1 — Mutate: patchStrategicMerge & patchesJson6902](./course-01-mutate-patchstrategicmerge-and-json6902.md)** — why mutation only ever sees resources on their way in, the two mutate patch styles, and when to reach for each.
-2. **[Part 2 — Generate: Clone & Synchronize](./course-02-generate-clone-and-synchronize.md)** — creating and cloning resources automatically, which controller drives it, and what `synchronize` actually keeps in sync.
+The top half shows the two ways a mutate rule changes an incoming object; the bottom half shows a generate rule creating a new object from a copy or from the policy, and keeping it in step when `synchronize` is on.
 
 ## Learning objectives
 
 After this module you can:
 
-- Write a `mutate.patchStrategicMerge` rule to add labels, annotations, or default fields to an incoming resource.
-- Write a `mutate.patchesJson6902` rule for precise, array-index-aware edits a strategic merge can't express.
-- Explain why a mutate rule leaves already-existing resources untouched, and name the field that changes that.
-- Write a `generate` rule that creates a new resource in response to a trigger, using `clone` to copy from an existing source.
+- Write a `mutate.patchStrategicMerge` rule that adds labels, annotations or default fields to an incoming object.
+- Write a `mutate.patchesJson6902` rule for exact, position-aware edits that a strategic merge cannot express.
+- Explain why a mutate rule leaves existing objects untouched, and name the field that changes that.
+- Write a `generate` rule that creates a new object when a trigger appears, using `clone` to copy an existing source.
 - Explain what `generate.synchronize: true` does differently from `synchronize: false`, including what happens when the policy is deleted.
 - Choose between a `mutate` rule and a `validate` rule for a missing-default problem.
 
 ## Before you start
 
-This module assumes you've completed Modules 1–2.
+Every mission starts with a pre-flight check. Make sure you have the knowledge this module expects, and know what is waiting in your playground.
 
-The playground linked at the top of this page gives you a kind Kubernetes cluster with `kubectl` already configured and pointed at it — there is no SSH step. Kyverno v1.19.1 (Helm chart 3.9.1) is installed with all four controllers running. Two things are seeded for you: a ConfigMap named `cluster-defaults` in the `platform-config` namespace, ready to be cloned, and a Pod named `existing-api` in `catalog` that was created before any policy exists. No policies are pre-created.
+### What you should already know
 
-Both parts carry **Try it** checkpoints that assume that environment is already up.
+- **Policy structure.** A `ClusterPolicy` holds rules; each rule has a `match` block and exactly one action.
+- **Validate rules.** A `validate` rule approves or rejects an object, and Kyverno runs all mutate rules before any validate rules.
+- **Basic `kubectl`.** `kubectl get`, `kubectl apply -f`, `kubectl run` and `--show-labels`.
 
-## Where this fits
+### What is in your playground
 
-Validate rules make a cluster safe by refusing bad input; mutate and generate rules make it *usable* by removing the need for anyone to supply that input by hand. In practice the three are layered: a mutate rule fills in a sane default, a validate rule enforces the cases a default cannot cover, and a generate rule provisions the surrounding resources a workload assumes exist. Reaching for a validate rule where a mutate rule belongs is a common design mistake — it turns a problem the cluster could have silently fixed into an error message a developer has to decode.
+Your playground is a training solar system: a `kind` cluster with `kubectl` already pointed at it, and no SSH step. **Kyverno v1.19.1** (Helm chart 3.9.1) is installed with all four controllers running. Two things are ready for you:
+
+- A ConfigMap named `cluster-defaults` in the `platform-config` namespace, ready to be cloned. It holds `log-level`, `region` and `telemetry-endpoint`.
+- A Pod named `existing-api` in `catalog`, created before any policy existed.
+
+No policies exist yet.
+
+Launch your playground now, and keep it running next to you while you read the parts:
+
+<!-- astrona:playground -->
+
+## The parts of this module
+
+1. [Mutate: patchStrategicMerge & patchesJson6902](./course-01-mutate-patchstrategicmerge-and-json6902.md): why mutation only sees objects on their way in, the two patch styles, and when to use each.
+2. [Generate: Clone & Synchronize](./course-02-generate-clone-and-synchronize.md): creating and copying objects automatically, which controller does it, what `synchronize` keeps in step, and your graded mission.
+3. [Wrap-Up: Mission Debrief](./course-03-wrap-up.md): what you learned, a self-check, and cleaning up the playground.
+
+## Why this matters
+
+Validate rules make a cluster safe by refusing bad input. Mutate and generate rules make it *usable* by removing the need for anyone to supply that input by hand. In practice the three work in layers: a mutate rule fills in a sensible default, a validate rule enforces the cases a default cannot cover, and a generate rule creates the surrounding objects a workload expects to exist.
+
+Using a validate rule where a mutate rule belongs is a common design mistake. It turns a problem the cluster could have fixed quietly into an error message a developer has to decode.

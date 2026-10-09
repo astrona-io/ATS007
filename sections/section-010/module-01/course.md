@@ -1,49 +1,63 @@
 # Kyverno Policy & Rule Anatomy
 
-<!-- astrona:playground -->
-> [!NOTE]
-> 🧪 **Hands-on playground for this module** — a clean, throwaway machine to explore on. No task, no grading. Folder: [`playground/`](https://github.com/astrona-io/ATS007/tree/main/sections/section-010/module-01/playground)
->
-> ```sh
-> astrona run --git ssh://git@github.com/astrona-io/ATS007.git -c sections/section-010/module-01/playground
-> astrona destroy section-010-module-01-playground
-> ```
+Astronaut, this is your first mission with Kyverno. Kyverno is the fleet's inspection service at mission control: it checks every launch request (every new or changed Kubernetes object) against rule books you write. Most policy tools make you learn a second language first. Kyverno does not. A Kyverno policy is a normal Kubernetes object, written in the same YAML you already use for a Deployment, and applied with the same `kubectl apply`.
 
-Most policy engines make you learn a second language before you can enforce a first rule — a domain-specific expression grammar, a query language, a whole new mental model bolted onto Kubernetes. Kyverno's founding decision was to skip that entirely: a Kyverno policy is a Kubernetes custom resource, written in the same YAML you already write for a Deployment or a Service, applied with the same `kubectl apply` you already run every day.
-
-This module is where that idea becomes concrete. You will learn the two policy resource kinds Kyverno gives you, how a policy's `rules` list is structured, and how each rule decides — precisely — which resources it is allowed to touch.
+This module shows what a policy is made of. You meet the two policy kinds, the list of rules inside a policy, and the `match` and `exclude` blocks that decide which objects a rule may touch.
 
 ```mermaid
-flowchart TD
-    A["ClusterPolicy (cluster-scoped)<br/>or Policy (namespace-scoped)"] --> B["spec.rules[]"]
-    B --> C["match<br/>(required: which resources this rule sees)"]
-    B --> D["exclude<br/>(optional: carve-outs from match)"]
-    B --> E["exactly one action:<br/>validate | mutate | generate | verifyImages"]
+flowchart TB
+    P["ClusterPolicy or Policy"] -->|"spec.rules"| R["Rule"]
+    R -->|"required"| M["match"]
+    R -->|"optional"| E["exclude"]
+    R -->|"exactly one"| A["validate, mutate, generate or verifyImages"]
 ```
 
-## How this module is organised
-
-1. **[Part 1 — ClusterPolicy vs Policy & Rule Anatomy](./course-01-clusterpolicy-vs-policy-and-rule-anatomy.md)** — the two policy kinds and how to tell them apart in the API, the shape of `spec.rules`, what `validationFailureAction` costs you in `Audit` versus `Enforce`, and why a rule commits to exactly one action type.
-2. **[Part 2 — Match, Exclude & Resource Selection](./course-02-match-exclude-and-resource-selection.md)** — how `match`/`exclude` decide which resources a rule actually evaluates, how to confirm a selector matches something before you trust it, and the pitfalls of getting the scope wrong.
+The diagram shows one rule inside a policy: it always has a `match` block, may have an `exclude` block, and has exactly one action.
 
 ## Learning objectives
 
 After this module you can:
 
-- Explain the difference between a `ClusterPolicy` and a `Policy`, and choose the right one for a given scoping requirement.
+- Explain the difference between a `ClusterPolicy` and a `Policy`, and choose the right one for a scoping requirement.
 - Find both policy kinds in the API and read the live rule schema with `kubectl api-resources` and `kubectl explain`.
-- Describe the four Kyverno rule action types (`validate`, `mutate`, `generate`, `verifyImages`) and explain why a single rule may only use one.
-- Read and write `match` and `exclude` blocks using `resources.kinds`, `resources.namespaces`, and `resources.selector` to scope a rule precisely — including protecting Kyverno's own namespace.
+- Describe the four Kyverno rule actions (`validate`, `mutate`, `generate`, `verifyImages`) and explain why one rule may only use one.
+- Read and write `match` and `exclude` blocks using `resources.kinds`, `resources.namespaces` and `resources.selector`, including protecting Kyverno's own namespace.
 - Explain the difference between `validationFailureAction: Audit` and `Enforce`, and say where an `Audit` result is recorded.
-- Diagnose a rule that never fires by checking its selection against the labels actually present on the cluster.
+- Find out why a rule never fires by checking its selection against the labels that really exist on the cluster.
 
 ## Before you start
 
-You should be comfortable with basic `kubectl` usage: `kubectl get`, `kubectl apply -f`, `kubectl describe`. No prior Kyverno experience is required.
+Every mission starts with a pre-flight check. Make sure you have the knowledge this module expects, and know what is waiting in your playground.
 
-The playground linked at the top of this page gives you a kind Kubernetes cluster with `kubectl` already configured and pointed at it — there is no SSH step. Kyverno v1.19.1 (Helm chart 3.9.1) is already installed and running in the `kyverno` namespace, and three namespaces are waiting for you to scope rules against: `payments` (labelled `env=production`), `catalog` (labelled `env=staging`), and `sandbox` (no labels). A single Pod, `sample-api`, is running in `payments`. No policies are pre-created — writing them is the point.
+### What you should already know
 
-Both parts carry **Try it** checkpoints that assume that environment is already up.
+- **Basic `kubectl`.** You can run `kubectl get`, `kubectl apply -f` and `kubectl describe`.
+- **No Kyverno yet.** This module starts from zero.
 
-> [!NOTE]
-> **You will see a deprecation warning on every policy command.** From Kyverno v1.19 onwards, any `kubectl` command touching a `kyverno.io/v1` `ClusterPolicy` or `Policy` prints `Warning: kyverno.io/v1 ClusterPolicy is deprecated and will be removed in a future release; migrate to ... (policies.kyverno.io)`. Nothing is broken — the policies still apply and enforce normally, and this course stays on these kinds because the KCA exam is written against them. [Part 1](./course-01-clusterpolicy-vs-policy-and-rule-anatomy.md) explains the warning in full the first time it appears.
+### What is in your playground
+
+Your playground is a training solar system: a `kind` Kubernetes cluster with `kubectl` already pointed at it. There is no SSH step. **Kyverno v1.19.1** (Helm chart 3.9.1) is installed and running in the `kyverno` namespace.
+
+Three namespaces (planets) are ready for you to scope rules against:
+
+| Namespace | Labels | Why it is there |
+| --- | --- | --- |
+| `payments` | `env=production` | Holds one running Pod, `sample-api` |
+| `catalog` | `env=staging` | A second labelled planet |
+| `sandbox` | none | The planet a label-based rule should skip |
+
+The Pod `sample-api` in `payments` carries the labels `team=payments` and `app=sample-api`. No policies exist yet. Writing them is the point.
+
+Launch your playground now, and keep it running next to you while you read the parts:
+
+<!-- astrona:playground -->
+
+## The parts of this module
+
+1. [ClusterPolicy vs Policy & Rule Anatomy](./course-01-clusterpolicy-vs-policy-and-rule-anatomy.md): the two policy kinds, the shape of `spec.rules`, `Audit` versus `Enforce`, and why a rule has exactly one action.
+2. [Match, Exclude & Resource Selection](./course-02-match-exclude-and-resource-selection.md): how `match` and `exclude` decide which objects a rule checks, how to confirm a selector really matches something, and your first graded mission.
+3. [Wrap-Up: Mission Debrief](./course-03-wrap-up.md): what you learned, a self-check, and cleaning up the playground.
+
+## Why this matters
+
+Every Kyverno policy you will ever write has this same shape: a kind, a list of rules, a `match` block and one action per rule. Learn to read that shape, and any policy in any cluster becomes something you can explain line by line.

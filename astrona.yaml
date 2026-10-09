@@ -74,6 +74,9 @@ modules:
             url: https://kyverno.io/docs/policy-types/cluster-policy/validate/
           - name: "Kyverno: Selecting Resources (match and exclude)"
             url: https://kyverno.io/docs/policy-types/cluster-policy/match-exclude/
+      - type: reading
+        title: "Wrap-Up: Mission Debrief"
+        path: sections/section-010/module-01/course-03-wrap-up.md
 
       - type: reading
         title: "Validate Rules: Patterns, Deny Logic & foreach"
@@ -104,6 +107,9 @@ modules:
             url: https://kyverno.io/docs/policy-types/cluster-policy/validate/
           - name: "Kyverno: Policy Reports"
             url: https://kyverno.io/docs/guides/reports/
+      - type: reading
+        title: "Wrap-Up: Mission Debrief"
+        path: sections/section-010/module-02/course-03-wrap-up.md
 
       - type: reading
         title: "Mutate & Generate Rules"
@@ -133,6 +139,9 @@ modules:
             url: https://kyverno.io/docs/policy-types/cluster-policy/mutate/
           - name: "Kyverno: Generate Resources"
             url: https://kyverno.io/docs/policy-types/cluster-policy/generate/
+      - type: reading
+        title: "Wrap-Up: Mission Debrief"
+        path: sections/section-010/module-03/course-03-wrap-up.md
 
       - type: reading
         title: "Section 010 Knowledge Check: Kyverno Policies & Rules"
