@@ -1,49 +1,66 @@
 # Variables, Context & JMESPath in Kyverno YAML
 
-<!-- astrona:playground -->
-> [!NOTE]
-> 🧪 **Hands-on playground for this module** — a clean, throwaway machine to explore on. No task, no grading. Folder: [`playground/`](https://github.com/astrona-io/ATS007/tree/main/sections/section-020/module-02/playground)
->
-> ```sh
-> astrona run --git ssh://git@github.com/astrona-io/ATS007.git -c sections/section-020/module-02/playground
-> astrona destroy section-020-module-02-playground
-> ```
+Astronaut, a plain `pattern` block can only check an object against a fixed shape written into the policy. Real rules are rarely that simple. "Is this label one of the values our platform team allows right now?" needs a list that lives somewhere else and can change without editing the policy. "Does this namespace already have a cost-center label?" needs to ask the API server (mission control) a question in the middle of the check.
+
+Kyverno handles both with **variables**: blanks in the rule, written as `{{ }}`, that are filled at check time. The text inside is a JMESPath expression, the way the inspector reads one line off a form. The data comes from the request itself or from an explicit `context` block. This module shows how to write variables, where their data comes from, and how `preconditions` use the same expressions to decide whether a rule runs at all.
 
 ```mermaid
-flowchart LR
-    A["AdmissionReview request<br/>+ target resource"] --> B["context[]<br/>configMap / apiCall / variable"]
-    B --> C["{{ jmesPath.expression }}<br/>resolved variable"]
-    C --> D["preconditions<br/>any/all gate"]
-    D -->|"pass"| E["rule body runs<br/>(validate/mutate/generate)"]
-    D -->|"fail"| F["rule skipped entirely"]
-    C --> G["validate.message<br/>with variable interpolated"]
+flowchart TB
+    R["admission request"] -->|"request.object"| V["{{ variable }}"]
+    C["context: configMap or apiCall"] -->|"loaded data"| V
+    V -->|"checked by"| P["preconditions"]
+    P -->|"pass"| B["rule body runs"]
+    P -->|"fail"| S["rule skipped"]
+    V -->|"filled into"| M["validate.message"]
 ```
 
-A static `pattern` block can only ever check a resource against a fixed shape written directly into the policy. Real rules are rarely that simple — "is this label one of the values our platform team currently allows" needs a list that lives somewhere else and can change without editing the policy; "does this Namespace already have a cost-center label" needs to ask the API server a question mid-evaluation. Kyverno answers both needs with **variables**: `{{ }}`-wrapped JMESPath expressions that get resolved once, at evaluation time, against data pulled from the request itself or from an explicit `context` block.
-
-This module covers how those variables are written and where their data comes from, and how `preconditions` use the same expression language to decide whether a rule should even run.
-
-## How this module is organised
-
-1. **[Part 1 — Variables & JMESPath Basics](./course-01-variables-and-jmespath-basics.md)** — the `{{ }}` syntax, what `request.object` and `request.oldObject` contain, and writing your first JMESPath expressions against a real resource.
-2. **[Part 2 — Context: configMap & apiCall](./course-02-context-configmap-and-apicall.md)** — pulling external data into a rule with `context[].configMap` and `context[].apiCall`, and gating a rule with `preconditions`.
+The diagram shows a variable filled from the request or from a `context` entry, then used by `preconditions` to decide whether the rule runs, and in the message the user sees.
 
 ## Learning objectives
 
 After this module you can:
 
-- Write a `{{ }}` variable expression that reads a field off the incoming request or resource.
-- Explain what `context[].configMap` and `context[].apiCall` each fetch, and when to reach for one over the other.
-- Use a `preconditions` block to make a rule apply only to matching requests (e.g. only on `CREATE`).
-- Interpolate a variable into `validate.message` so a blocked user sees exactly which value tripped the rule.
-- Explain why an `apiCall` can return nothing even when the equivalent `kubectl get` works for you, and where to look when it does.
+- Write a `{{ }}` variable expression that reads a field from the incoming request or object.
+- Explain what `context[].configMap` and `context[].apiCall` each fetch, and when to use one over the other.
+- Use a `preconditions` block so a rule only applies to matching requests (for example, only on `CREATE`).
+- Put a variable into `validate.message`, so a blocked user sees exactly which value broke the rule.
+- Explain why an `apiCall` can return nothing even when the same `kubectl get` works for you, and where to look when it does.
 
 ## Before you start
 
-Complete Module 1 first — this module assumes you can already write and apply a basic `validate` rule. Familiarity with JSON path-style lookups (e.g. `dot.notation.access`) is helpful but not required; JMESPath is introduced from first principles.
+Every mission starts with a pre-flight check. Make sure you have the knowledge this module expects, and know what is waiting in your playground.
 
-The linked playground gives you a fresh **kind** Kubernetes cluster with Kyverno already installed and `kubectl` already pointed at it — no VM, no SSH step. It is seeded so that every data source in this module has something real behind it: a labelled namespace `tenant-blue`, an unlabelled `tenant-green`, a `deploy-settings` ConfigMap, and a running Pod at `tenant-blue/reporting`. Nothing in these parts is graded.
+### What you should already know
 
-## Where this fits
+- **Basic validate rules.** You can write a `ClusterPolicy` or `Policy` with a `validate` rule, apply it with `kubectl apply -f`, and read the rejection message.
+- **JSON paths help, but are not required.** If you have used dotted paths such as `metadata.labels.env`, JMESPath will feel familiar. This module starts from zero.
 
-Variables are what separate a policy library that scales from one that has to be edited every time the business changes its mind. Without them, "the allowed regions are these four" is a fact frozen into YAML; with a `context` entry it becomes a ConfigMap a platform team owns independently. That leverage comes with two costs worth carrying into every rule you write from here on. First, resolution is silent on failure — an expression that finds nothing usually skips the rule rather than rejecting anything, so a policy can look enforcing and enforce nothing. Second, a `context` lookup runs as Kyverno's service account, not as you, so what you can read in a terminal is not the test for what a rule can read at evaluation time. Both surface as *empty results*, never as errors, which is why this module keeps returning to the lookup that finds nothing.
+### What is in your playground
+
+Your playground is a training solar system: a fresh `kind` cluster with **Kyverno v1.19.1** (Helm chart 3.9.1) installed and `kubectl` already pointed at it. There is no virtual machine and no SSH step. Every data source in this module has something real behind it:
+
+| Object | What it holds |
+| --- | --- |
+| Namespace `tenant-blue` | Labels `cost-center=cc-4417` and `tier=internal` |
+| Namespace `tenant-green` | No labels of its own |
+| ConfigMap `deploy-settings` in `tenant-blue` | `allowed-regions: eu-north-1,eu-west-1` and `max-replicas: "5"` |
+| Pod `reporting` in `tenant-blue` | Labels `env=staging` and `app=reporting` |
+
+No policies exist yet, and nothing in the playground is graded.
+
+Launch your playground now, and keep it running next to you while you read the parts:
+
+<!-- astrona:playground -->
+
+## The parts of this module
+
+1. [Variables & JMESPath Basics](./course-01-variables-and-jmespath-basics.md): the `{{ }}` syntax, what `request.object` and `request.oldObject` hold, and your first JMESPath expressions against a real object.
+2. [Context: configMap & apiCall](./course-02-context-configmap-and-apicall.md): pulling outside data into a rule with `context[].configMap` and `context[].apiCall`, and the permissions a lookup runs under.
+3. [Preconditions & Allow-Lists](./course-03-preconditions-and-allow-lists.md): gating a rule with `preconditions`, combining a ConfigMap allow-list with a named rejection, and your graded mission.
+4. [Wrap-Up: Mission Debrief](./course-04-wrap-up.md): what you learned, a self-check, and cleaning up the playground.
+
+## Why this matters
+
+Variables are what let a policy library grow without being edited every time the business changes its mind. Without them, "the allowed regions are these four" is a fact frozen into YAML. With a `context` entry, it becomes a ConfigMap a platform team owns on its own.
+
+That power has two costs to keep in mind for every rule you write. First, a lookup that fails is silent: an expression that finds nothing usually skips the rule instead of rejecting anything, so a policy can look like it enforces and enforce nothing. Second, a `context` lookup runs as Kyverno's service account, not as you, so what you can read in a terminal is not proof of what a rule can read. Both show up as *empty results*, never as errors.

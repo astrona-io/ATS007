@@ -1,12 +1,13 @@
 # Solution Walkthrough
 
-Follow these steps to author, apply, and verify the policy:
+The policy is a `Policy`, not a `ClusterPolicy`, so it lives in `storefront` and only sees objects there. You then prove it with one Service that is rejected and one that is admitted.
 
 ---
 
-## Step 1: Author the Policy YAML
+## Step 1: Write the policy
 
-Create `deny-loadbalancer-services.yaml`:
+Save this as `deny-loadbalancer-services.yaml`:
+
 ```yaml
 apiVersion: kyverno.io/v1
 kind: Policy
@@ -29,26 +30,34 @@ spec:
           spec:
             type: "!LoadBalancer"
 ```
-The `!` prefix on `LoadBalancer` in the pattern is Kyverno's "not equal to" operator for a validate pattern — the rule passes only when `spec.type` is anything *other than* `LoadBalancer`.
+
+The `!` in front of `LoadBalancer` is Kyverno's "not equal to" operator in a validate pattern. The rule passes only when `spec.type` is anything *other than* `LoadBalancer`.
 
 ---
 
-## Step 2: Apply the Policy
+## Step 2: Apply the policy
+
+Apply it:
 
 ```bash
 kubectl apply -f deny-loadbalancer-services.yaml
 ```
-Confirm it is ready:
+
+Then check that it is ready:
+
 ```bash
 kubectl describe policy -n storefront deny-loadbalancer-services | grep -A3 Status
 ```
 
+Look for a ready condition with status `True`.
+
 ---
 
-## Step 3: Confirm the LoadBalancer Service Is Rejected
+## Step 3: Confirm the LoadBalancer Service is rejected
 
-```bash
-kubectl apply -n storefront -f - <<'EOF'
+Save this as `service-checkout-lb.yaml`:
+
+```yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -59,16 +68,23 @@ spec:
     app: checkout
   ports:
     - port: 80
-EOF
 ```
-This is rejected with an error containing `Service of type LoadBalancer is not allowed in the storefront namespace.`
+
+Apply it:
+
+```bash
+kubectl apply -n storefront -f service-checkout-lb.yaml
+```
+
+The API server rejects it with an error containing `Service of type LoadBalancer is not allowed in the storefront namespace.` The Kyverno admission controller made that decision.
 
 ---
 
-## Step 4: Confirm the ClusterIP Service Is Allowed
+## Step 4: Confirm the ClusterIP Service is allowed
 
-```bash
-kubectl apply -n storefront -f - <<'EOF'
+Save this as `service-checkout-clusterip.yaml`:
+
+```yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -79,11 +95,35 @@ spec:
     app: checkout
   ports:
     - port: 80
-EOF
 ```
-This succeeds:
+
+Apply it:
+
+```bash
+kubectl apply -n storefront -f service-checkout-clusterip.yaml
+```
+
+Then check the result:
+
 ```bash
 kubectl get svc -n storefront checkout-clusterip
 ```
 
-Once verified, run the local validation suite to pass the lab!
+The Service exists, with type `ClusterIP`.
+
+---
+
+## Step 5: Submit
+
+```bash
+astrona submit -c sections/section-020/module-01/labs/lab-01
+```
+
+---
+
+## Common mistakes
+
+* **Writing a `ClusterPolicy`.** The grader looks for a namespaced `Policy` in `storefront`.
+* **Leaving out `metadata.namespace`.** The `Policy` lands in your default namespace and never sees `storefront`.
+* **Using `Audit`.** Then `checkout-lb` is created and only reported, and the grader fails because it exists.
+* **Forgetting `-n storefront` on the Service applies.** The Service files have no namespace, so without `-n` they land somewhere else.

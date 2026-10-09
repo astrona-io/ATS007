@@ -1,9 +1,21 @@
-# Kyverno Policy YAML Anatomy Sandbox
+---
+estimated_duration: 15m
+---
 
-Welcome to the Module 1 targeted practice sandbox. In this lab, you will author a namespaced Kyverno `Policy` from scratch, apply it with `kubectl`, and confirm it correctly denies and allows the right resources.
+# Namespaced Policy Authoring Lab
 
-## Launching the Lab
-Run the following command in your terminal to boot the kind Kubernetes cluster:
-```bash
-astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-020/module-01/labs/lab-01
+Astronaut, this mission checks that you can write a Kyverno manifest from scratch: a namespaced `Policy`, a planet's own rule book, applied with `kubectl` and proved with one Service that is rejected and one that is admitted.
+
+## What is in the lab
+
+- A `kind` Kubernetes cluster with **Kyverno v1.19.1** installed in the `kyverno` namespace.
+- The `storefront` namespace, empty and waiting.
+- No policies. Writing one is the task.
+
+## Run it
+
+```sh
+astrona run --git ssh://git@github.com/astrona-io/ATS007.git -c sections/section-020/module-01/labs/lab-01
+astrona submit -c sections/section-020/module-01/labs/lab-01
+astrona destroy ats-007-lab-005
 ```

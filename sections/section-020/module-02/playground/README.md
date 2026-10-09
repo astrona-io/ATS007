@@ -1,18 +1,14 @@
-# Variables, Context & JMESPath in Kyverno YAML — Playground
+# Variables, Context & JMESPath Playground
 
-- **ID:** PLAYGROUND
 - **Slug:** section-020-module-02-playground
 - **Author:** Paris Nakita Kejser
-- **Type:** Astrona playground — clean environment, no task, no grading
+- **Type:** Astrona playground: a clean environment, no task, no grading
 
+A `kind` Kubernetes cluster with **Kyverno v1.19.1** (Helm chart 3.9.1)
+already installed and `kubectl` already pointed at it. It also has
+the namespaces `tenant-blue` (labelled, with the ConfigMap `deploy-settings` and a running Pod `reporting`) and `tenant-green` (no labels). No policies are created for you. There is nothing to submit.
 
-
-A kind Kubernetes cluster with Kyverno v1.19.1 (Helm chart 3.9.1) already installed, seeded so
-every kind of variable data source has something real behind it: a labelled
-namespace (`tenant-blue`) and an unlabelled one (`tenant-green`) for `apiCall`
-lookups, a `deploy-settings` ConfigMap for `context[].configMap`, and a running
-Pod whose JSON mirrors what `request.object` holds. No policies are
-pre-created — writing them is the point. Nothing to submit.
+See [`docs/overview.md`](docs/overview.md) for what is in the box and ideas to try.
 
 ## Run it
 
@@ -21,14 +17,14 @@ astrona run -c .
 astrona destroy section-020-module-02-playground
 ```
 
-`astrona destroy` takes the environment name (`metadata.name` = `section-020-module-02-playground`), not
-the config path. `astrona submit` and `astrona test` do not apply — there is no
-grading.
+`astrona destroy` takes the environment name (`metadata.name` =
+`section-020-module-02-playground`), not the folder path. `astrona submit` and
+`astrona test` do not apply, because there is no grading.
 
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
-| `config.yaml` | Environment definition (runtime + bootstrap only) |
-| `bootstrap/prepare.sh` | OS prep run once at startup |
+| `config.yaml` | Environment definition (runtime and bootstrap only) |
+| `bootstrap/prepare.sh` | Preparation script, run once at startup |
 | `docs/overview.md` | What the environment contains and ideas to try |

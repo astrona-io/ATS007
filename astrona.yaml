@@ -195,6 +195,9 @@ modules:
         title: "Applying & Inspecting with kubectl"
         path: sections/section-020/module-01/course-02-applying-and-inspecting-with-kubectl.md
       - type: reading
+        title: "Dry Runs & Multi-Document Files"
+        path: sections/section-020/module-01/course-03-dry-runs-and-multi-document-files.md
+      - type: reading
         title: Question
         path: sections/section-020/module-01/labs/lab-01/question.md
       - type: lab
@@ -213,6 +216,9 @@ modules:
             url: https://kyverno.io/docs/policy-types/cluster-policy/overview/
           - name: "Kyverno: Validate Rules"
             url: https://kyverno.io/docs/policy-types/cluster-policy/validate/
+      - type: reading
+        title: "Wrap-Up: Mission Debrief"
+        path: sections/section-020/module-01/course-04-wrap-up.md
 
       - type: reading
         title: "Variables, Context & JMESPath in Kyverno YAML"
@@ -223,6 +229,9 @@ modules:
       - type: reading
         title: "Context: configMap & apiCall"
         path: sections/section-020/module-02/course-02-context-configmap-and-apicall.md
+      - type: reading
+        title: "Preconditions & Allow-Lists"
+        path: sections/section-020/module-02/course-03-preconditions-and-allow-lists.md
       - type: reading
         title: Question
         path: sections/section-020/module-02/labs/lab-01/question.md
@@ -242,16 +251,22 @@ modules:
             url: https://kyverno.io/docs/policy-types/cluster-policy/external-data-sources/
           - name: "Kyverno: Variables"
             url: https://kyverno.io/docs/policy-types/cluster-policy/variables/
+      - type: reading
+        title: "Wrap-Up: Mission Debrief"
+        path: sections/section-020/module-02/course-04-wrap-up.md
 
       - type: reading
         title: "Validating Manifests with the Kyverno CLI"
         path: sections/section-020/module-03/course.md
       - type: reading
-        title: "`kyverno apply`: Offline Evaluation"
-        path: sections/section-020/module-03/course-01-kyverno-apply-offline-evaluation.md
+        title: "The Kyverno Command-Line Tool"
+        path: sections/section-020/module-03/course-01-the-kyverno-command-line-tool.md
       - type: reading
-        title: "`kyverno test` Suites & `jp`"
-        path: sections/section-020/module-03/course-02-kyverno-test-suites-and-jp.md
+        title: "kyverno apply: Offline Evaluation"
+        path: sections/section-020/module-03/course-02-kyverno-apply-offline-evaluation.md
+      - type: reading
+        title: "kyverno test Suites & jp"
+        path: sections/section-020/module-03/course-03-kyverno-test-suites-and-jp.md
       - type: reading
         title: Question
         path: sections/section-020/module-03/labs/lab-01/question.md

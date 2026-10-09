@@ -1,50 +1,65 @@
 # Validating Manifests with the Kyverno CLI
 
-<!-- astrona:playground -->
-> [!NOTE]
-> 🧪 **Hands-on playground for this module** — a clean, throwaway machine to explore on. No task, no grading. Folder: [`playground/`](https://github.com/astrona-io/ATS007/tree/main/sections/section-020/module-03/playground)
->
-> ```sh
-> astrona run --git ssh://git@github.com/astrona-io/ATS007.git -c sections/section-020/module-03/playground
-> astrona destroy section-020-module-03-playground
-> ```
+Astronaut, so far there has been one way to prove a policy works: apply it to a live cluster, create an object, and see whether it was blocked. That works, but it is a slow way to find out that a `pattern` block was nested one level too shallow. Every try costs a `kubectl apply`, a test object, a cleanup, and a cluster that has to be running in the first place.
+
+The `kyverno` command-line tool (CLI, command-line interface) takes the cluster out of that loop. It is a standalone program that carries the same policy engine the in-cluster controllers run. So it can check a policy against a manifest entirely on your machine: no cluster, no admission webhook, no `kubectl` context. Think of it as a ground drill: the rule book runs against ship plans, with no solar system needed. It is the right tool for fast policy writing, and, because it exits with an error code when a policy fails, the right tool for an automated check that blocks a pull request before a bad policy reaches a cluster.
 
 ```mermaid
 flowchart LR
-    A["author policy.yaml"] --> B["kyverno jp query<br/>debug the expression"]
-    B --> C["kyverno apply<br/>ad-hoc check vs a manifest"]
-    C --> D["kyverno test<br/>committed regression suite"]
-    D --> E["kubectl apply<br/>ship to the cluster"]
-    B -.->|no cluster needed| F["fast inner loop"]
-    C -.->|no cluster needed| F
-    D -.->|no cluster needed| F
-    E -.->|needs a cluster| G["slow outer loop"]
+    W["write policy.yaml"] -->|"debug expressions"| J["kyverno jp"]
+    J -->|"one-off check"| A["kyverno apply"]
+    A -->|"saved suite"| T["kyverno test"]
+    T -->|"ship it"| K["kubectl apply"]
 ```
 
-Everything you have written so far in this section has been proven the same way: apply the policy to a live cluster, create a resource, and see whether it was blocked. That works, but it is a slow way to find out that a `pattern` block was nested one level too shallow. Each iteration costs a `kubectl apply`, a test resource, a cleanup, and a cluster that has to be running in the first place.
-
-The `kyverno` CLI removes the cluster from that loop. It is a standalone binary that embeds the same policy engine the in-cluster controllers run, so it can evaluate a policy against a resource manifest entirely on your laptop — no cluster, no admission webhook, no `kubectl` context. That makes it the right tool for the tight authoring loop, and, because it exits non-zero when a policy fails, the right tool for a CI gate that blocks a pull request before a bad policy ever reaches a cluster.
-
-This module covers the three subcommands that matter for manifest validation: `apply` for one-off evaluation, `test` for a declarative regression suite, and `jp` for debugging the JMESPath expressions Module 2 introduced.
-
-## How this module is organised
-
-1. **[Part 1 — `kyverno apply`: Offline Evaluation](./course-01-kyverno-apply-offline-evaluation.md)** — installing the CLI, running a policy against one or more resource manifests with no cluster attached, supplying the variables a policy expects, and reading the exit code as a CI signal.
-2. **[Part 2 — `kyverno test` Suites & `jp`](./course-02-kyverno-test-suites-and-jp.md)** — writing a `kyverno-test.yaml` that declares expected outcomes so a policy library can be regression-tested, and using `kyverno jp` to iterate on a JMESPath expression before it ever goes into a rule.
+The diagram shows the usual order: debug expressions, check one manifest, write a saved test suite, and only then apply the policy to a cluster. Only the last step needs a cluster.
 
 ## Learning objectives
 
 After this module you can:
 
-- Install the `kyverno` CLI and explain how it relates to the in-cluster controllers.
-- Evaluate a policy against a resource manifest offline with `kyverno apply`, including supplying variable values with `--set` or `--values-file`.
-- Explain why `kyverno apply`'s exit code makes it usable as a CI gate.
-- Write a `kyverno-test.yaml` suite declaring `policies`, `resources`, and expected `results`, and run it with `kyverno test`.
-- Articulate when to reach for `apply` versus `test`, and why they are not interchangeable.
-- Debug a JMESPath expression against a JSON input with `kyverno jp query` before wiring it into a rule.
+- Install the `kyverno` tool and explain how it relates to the in-cluster controllers.
+- Check a policy against a manifest offline with `kyverno apply`, including giving variable values with `--set` or `--values-file`.
+- Explain why the exit code of `kyverno apply` makes it usable as an automated pipeline check.
+- Write a `kyverno-test.yaml` suite with `policies`, `resources` and expected `results`, and run it with `kyverno test`.
+- Explain when to use `apply` and when to use `test`, and why they are not the same.
+- Debug a JMESPath expression against a JSON input with `kyverno jp query` before putting it into a rule.
 
 ## Before you start
 
-Complete Modules 1 and 2 first. This module assumes you can already write a `validate` rule and read a `{{ }}` variable expression — `kyverno jp` in particular only makes sense as a debugging tool for the JMESPath syntax [Module 2](../module-02/course.md) taught.
+Every mission starts with a pre-flight check. Make sure you have the knowledge this module expects, and know what is waiting in your playground.
 
-The linked playground gives you a fresh **kind** Kubernetes cluster with Kyverno installed in-cluster, the `kyverno` CLI installed on the node, and `kubectl` already pointed at the cluster — no VM, no SSH step. It also seeds a sample policy, a passing and a failing Pod manifest, and a JSON document under `/root/playground/`. Most of what follows never touches the cluster at all — that is the point.
+### What you should already know
+
+- **Validate rules.** You can write a `validate` rule with a `pattern`.
+- **Variables.** A `{{ }}` variable holds a JMESPath expression that reads a field, such as `request.object.metadata.labels.team`.
+
+### What is in your playground
+
+Your playground is a training solar system: a fresh `kind` cluster with **Kyverno v1.19.1** (Helm chart 3.9.1) installed and `kubectl` already pointed at it. There is no virtual machine and no SSH step. The **`kyverno` tool v1.19.1** is installed at `/usr/local/bin/kyverno`.
+
+Sample files are waiting in `/root/playground/`:
+
+| File | What it is |
+| --- | --- |
+| `disallow-latest-tag.yaml` | A `ClusterPolicy` with the rule `require-explicit-tag`, which rejects `:latest` images |
+| `pinned-pod.yaml` | A Pod named `pinned-pod` using `nginx:1.27`: it should pass |
+| `latest-pod.yaml` | A Pod named `latest-pod` using `nginx:latest`: it should fail |
+| `sample.json` | A small JSON document for practising `kyverno jp query` |
+
+No test suite is created for you, and nothing is applied to the cluster. Most of this module never touches the cluster at all; that is the point.
+
+Launch your playground now, and keep it running next to you while you read the parts:
+
+<!-- astrona:playground -->
+
+## The parts of this module
+
+1. [The Kyverno Command-Line Tool](./course-01-the-kyverno-command-line-tool.md): what the tool is, how to install it, and why its version must match the cluster's.
+2. [kyverno apply: Offline Evaluation](./course-02-kyverno-apply-offline-evaluation.md): checking a policy against one or more manifests with no cluster, supplying variables, and reading the exit code.
+3. [kyverno test Suites & jp](./course-03-kyverno-test-suites-and-jp.md): writing a `kyverno-test.yaml` that declares expected results, debugging expressions with `kyverno jp`, and your graded mission.
+4. [Wrap-Up: Mission Debrief](./course-04-wrap-up.md): what you learned, a self-check, and cleaning up the playground.
+
+## Why this matters
+
+A policy library grows, and every change can break a rule that used to work. A saved test suite that runs in seconds, with no cluster, is how you catch that before the cluster does.
