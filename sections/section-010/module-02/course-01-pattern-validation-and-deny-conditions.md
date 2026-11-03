@@ -1,50 +1,53 @@
-# Part 1 — Pattern Validation & Deny Conditions
+# Pattern Validation & Deny Conditions
 
-> Prerequisite: [Landing page](./course.md). Next: [Part 2 — foreach & Background Scans](./course-02-foreach-and-background-scans.md).
+Astronaut, this part covers the two ways a `validate` rule can check fields whose names you know in advance. `pattern` checks the *shape* of an object. `deny.conditions` checks *logic* across fields that have nothing to do with each other.
 
-This part covers the two ways a `validate` rule can express a check on fields it knows the names of: `pattern` for shape, and `deny.conditions` for boolean logic across independent fields. Part 2 adds the third — iterating a list whose length you don't know.
+## Three tools, one rule type
 
-## Three mechanisms, one rule type
+Everything in this module lives under one rule's `validate` block. `pattern` is the shape check: a stencil the ship must fit. `deny` holds `conditions`: a list of "no launch if ..." checks. `foreach` wraps either of those and applies it to every item of a list.
 
-Everything in this module lives under a single rule's `validate` block. `pattern` is the declarative shape check. `deny` carries `conditions` for boolean logic across independent fields. `foreach` wraps either of those and applies it per element of a list.
+They are options side by side under one field. You are not choosing between three rule *types*; you are choosing how one `validate` rule expresses its check.
 
-Seeing them as siblings under one field is worth a moment, because it clarifies that you are not choosing between three rule *types* — you are choosing how one `validate` rule expresses its check. The API server can list the options for you.
+<!-- astrona:playground:renew -->
 
-> [!TIP]
-> **Try it — list what a validate block accepts**
->
-> ```sh
-> kubectl explain clusterpolicy.spec.rules.validate
-> ```
->
-> Expect something like:
->
-> ```text
-> KIND:       ClusterPolicy
-> VERSION:    kyverno.io/v1
->
-> FIELDS:
->   deny          <Object>
->   foreach       <[]Object>
->   message       <string>
->   pattern       <>
->   ...
-> ```
->
-> The exact field set varies by Kyverno version, and newer versions add more. The three this module teaches — `pattern`, `deny`, `foreach` — are all peers inside the same `validate` block.
+### See the options in your playground
+
+The API server can list what a `validate` block accepts:
+
+```sh
+kubectl explain clusterpolicy.spec.rules.validate
+```
+
+You should see something like:
+
+```text
+KIND:       ClusterPolicy
+VERSION:    kyverno.io/v1
+
+FIELDS:
+  deny          <Object>
+  foreach       <[]Object>
+  message       <string>
+  pattern       <>
+  ...
+```
+
+The exact field set changes between Kyverno versions, and newer versions add more. The three this module teaches, `pattern`, `deny` and `foreach`, all sit side by side inside the same `validate` block.
 
 ## Pattern validation
 
-A `validate.pattern` block mirrors the shape of the resource it's checking, and Kyverno recursively compares the incoming resource against it field by field. Where a plain value like `"prod"` requires an exact match, Kyverno's pattern language layers on a small set of operators and wildcards for everything else:
+A `validate.pattern` block copies the shape of the object it checks. Kyverno walks through the incoming object and compares it with the pattern, field by field. A plain value such as `"prod"` must match exactly. For everything else, Kyverno's pattern language adds a few operators and wildcards:
 
 | Syntax | Meaning |
 | --- | --- |
 | `"*"` | Matches any value, including an empty one |
 | `"?*"` | Matches any non-empty value (at least one character) |
 | `"?"` | Matches exactly one character |
-| `">5"`, `">=5"`, `"<5"`, `"<=5"` | Numeric comparison operators |
-| `"!prod"` | "Not equal to" — matches anything except `prod` |
-| `"prod \| staging"` | OR between literal values |
+| `">5"`, `">=5"`, `"<5"`, `"<=5"` | Number comparisons |
+| `"!prod"` | "Not equal to": matches anything except `prod` |
+| `"prod \| staging"` | OR between plain values |
+
+Here is a pattern that checks two fields at once:
 
 ```yaml
 validate:
@@ -57,22 +60,64 @@ validate:
       replicas: ">=2"
 ```
 
-This single pattern block checks two unrelated fields (`metadata.labels.app` and `spec.replicas`) at once, because pattern trees are ANDed together implicitly by their nested structure — every leaf in the pattern must be satisfied.
+This one pattern checks two unrelated fields, `metadata.labels.app` and `spec.replicas`. Every leaf in a pattern must be satisfied, so the checks are ANDed together by the nested structure itself.
 
-> [!TIP]
-> **Try it — a rejection you can read**
->
-> Apply a `ClusterPolicy` using the pattern above, then:
->
-> ```sh
-> kubectl create deployment too-small --image=nginx:alpine --replicas=1
-> ```
->
-> Expect an admission error naming your rule and quoting your `message`, with the exact field path (`/spec/replicas`) that failed — Kyverno always tells you which part of the pattern tripped. Clean up afterwards with `kubectl delete deployment too-small --ignore-not-found`.
+### See a rejection in your playground
 
-## When a pattern isn't enough: `deny` and `conditions`
+Put that pattern into a real policy and watch it reject a Deployment. To keep it away from the system namespaces, this policy only matches Deployments in `default`.
 
-Patterns are excellent at describing *shape*, but they can't express boolean logic across independent fields — "field A equals X AND field B does not equal Y," or "field A is in this list OR field B is in that other list." For that, a validate rule uses `deny` with a `conditions` block instead of `pattern`:
+Save this as `clusterpolicy-require-replicas-and-app-label.yaml`:
+
+```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-replicas-and-app-label
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-replicas-and-app-label
+      match:
+        any:
+        - resources:
+            kinds:
+              - Deployment
+            namespaces:
+              - default
+      validate:
+        message: "Deployments must run at least 2 replicas and set an 'app' label."
+        pattern:
+          metadata:
+            labels:
+              app: "?*"
+          spec:
+            replicas: ">=2"
+```
+
+Apply it:
+
+```sh
+kubectl apply -f clusterpolicy-require-replicas-and-app-label.yaml
+```
+
+Then try to create a Deployment with only one replica:
+
+```sh
+kubectl create deployment too-small --image=nginx:alpine --replicas=1
+```
+
+Look for an admission error that names your rule, quotes your `message`, and gives the exact field path that failed (`/spec/replicas`). Kyverno always tells you which part of the pattern tripped. `kubectl create deployment` sets the `app` label for you, so only the replica count fails.
+
+Clean up afterwards, so the policy does not get in the way later:
+
+```sh
+kubectl delete deployment too-small --ignore-not-found
+kubectl delete clusterpolicy require-replicas-and-app-label
+```
+
+## When a pattern is not enough: `deny` and `conditions`
+
+Patterns are very good at describing *shape*. They cannot express true-or-false logic across separate fields, such as "field A equals X AND field B does not equal Y". For that, a validate rule uses `deny` with a `conditions` block instead of `pattern`:
 
 ```yaml
 validate:
@@ -88,16 +133,16 @@ validate:
         value: "kube-system"
 ```
 
-`conditions.all` is an AND — every listed condition must be true for the rule to deny the resource. `conditions.any` is an OR — the rule denies as soon as one condition is true. `key`/`value` pairs are compared with operators like `Equals`, `NotEquals`, `In`, and `AnyIn`; the `{{ }}` syntax pulls a live value out of the incoming request using a JMESPath-style expression (you'll see more of this in Section 020).
+`conditions.all` is an AND: every listed condition must be true before the rule denies the object. `conditions.any` is an OR: the rule denies as soon as one condition is true. Each `key` is compared with its `value` using an operator such as `Equals`, `NotEquals`, `In` or `AnyIn`.
+
+The `{{ }}` marks a variable: a blank in the rule that Kyverno fills from the launch request. The text inside is a JMESPath expression, the way the inspector reads one line off a form. Here `request.object.spec.serviceAccountName` reads the service account name from the incoming Pod.
+
+## Common pitfalls
 
 > [!WARNING]
-> **Common pitfall**
->
-> Reaching for `deny.conditions` for a check that a plain `pattern` could express just as well makes the policy harder to read for no benefit. Reserve `deny` for genuine cross-field boolean logic; use `pattern` for straightforward shape checks.
+> - **Using `deny.conditions` for a plain shape check.** If a `pattern` can say it, use the `pattern`. `deny` makes the policy harder to read and should be kept for real logic across fields.
+> - **Using `"*"` when you mean "must be set".** `"*"` also matches an empty value. Use `"?*"` when the field must have at least one character.
+> - **Mixing up `all` and `any`.** `all` denies only when every condition is true; `any` denies when one is. Swapping them makes a rule far stricter or far looser than you meant.
+> - **Leaving a test policy behind.** An `Enforce` policy you applied to experiment keeps blocking objects. Delete it when you are done.
 
-> *`pattern` describes what a resource should look like; `deny.conditions` describes what combination of facts should be refused — reach for the second only when the first cannot say it.*
-
-## Reference
-
-- Kyverno validate rule documentation — the complete operator and wildcard reference for `pattern`.
-- `kubectl explain clusterpolicy.spec.rules.validate` — the live schema on your installed version.
+> *`pattern` describes what an object should look like; `deny.conditions` describes which combination of facts should be refused, so reach for the second only when the first cannot say it.*

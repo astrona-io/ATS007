@@ -47,12 +47,8 @@ All command output in this chapter is representative. **Digests in particular wi
 
 ## Three questions this module answers
 
-The whole subject collapses into three questions you can ask about any image reference. Part 1 settles the first two; Part 2 takes the third:
+The whole subject collapses into three questions you can ask about any image reference. The three questions are:
 
 1. **What is an image, physically?** Not one file — a small graph of separately-stored, content-addressed objects.
 2. **What did I actually get?** The tag you wrote and the bytes you received are different facts, and only one of them is stable.
 3. **Who vouched for it, and for what?** A signature answers a narrower question than most people assume.
-
-## Where this fits
-
-Everything in this module is groundwork for a single decision made elsewhere: whether the cluster should admit a given Pod. Module 2 turns these ideas into an enforced `verifyImages` policy, where the digest becomes the thing signatures are checked against and the thing the admitted Pod gets rewritten to. Reading digests and signatures correctly here is what makes that policy meaningful rather than cargo-culted — a `verifyImages` rule whose author does not understand why `mutateDigest` matters is a rule that can be disabled by someone who understands it slightly better.

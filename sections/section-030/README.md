@@ -22,6 +22,7 @@ This section is divided into two sequential modules, each paired with a dedicate
 *   **Module Reader:** **[Module 1: The Kubernetes Admission Control Model](./module-01/course.md)**
     1. [The API Request Lifecycle & Webhook Types](./module-01/course-01-api-request-lifecycle-and-webhook-types.md)
     2. [Mutating vs Validating Webhooks](./module-01/course-02-mutating-vs-validating-webhooks.md)
+    3. [Summary](./module-01/course-03-summary.md)
 *   **Practice Lab Sandbox:** **`sections/section-030/module-01/labs/lab-01`**
 *   **Lab Run Command:**
     ```bash
@@ -33,6 +34,7 @@ This section is divided into two sequential modules, each paired with a dedicate
 *   **Module Reader:** **[Module 2: Kyverno as a Dynamic Admission Controller](./module-02/course.md)**
     1. [Enforce vs Audit & PolicyReports](./module-02/course-01-enforce-vs-audit-and-policyreports.md)
     2. [Background Scanning & Controllers](./module-02/course-02-background-scanning-and-controllers.md)
+    3. [Summary](./module-02/course-03-summary.md)
 *   **Practice Lab Sandbox:** **`sections/section-030/module-02/labs/lab-01`**
 *   **Lab Run Command:**
     ```bash
@@ -40,7 +42,19 @@ This section is divided into two sequential modules, each paired with a dedicate
     ```
 *   **Hands-on Objective:** Roll a policy out in `Audit` mode against a namespace with a pre-existing violation, read the resulting `PolicyReport`, then flip to `Enforce` and confirm only new violations are blocked.
 
-### 3. Section Capstone Challenge
+### 3. Failure Policy, Timeouts & Resource Filters
+*   **Module Reader:** **[Module 3: Failure Policy, Timeouts & Resource Filters](./module-03/course.md)**
+    1. [Failure Policy and Timeouts](./module-03/course-01-failure-policy-and-timeouts.md)
+    2. [Resource Filters and Availability](./module-03/course-02-resource-filters-and-availability.md)
+    3. [Summary](./module-03/course-03-summary.md)
+*   **Practice Lab Sandbox:** **`sections/section-030/module-03/labs/lab-01`**
+*   **Lab Run Command:**
+    ```bash
+    astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-030/module-03/labs/lab-01
+    ```
+*   **Hands-on Objective:** Set `failurePolicy: Ignore` and a 15 second timeout on a policy and find both in the validating webhook configuration.
+
+### 4. Section Capstone Challenge
 *   **Comprehensive Challenge:** **`sections/section-030/capstone/labs/lab-01` (Admission Controllers Integration)**
 *   **Lab Run Command:**
     ```bash
@@ -54,4 +68,4 @@ This section is divided into two sequential modules, each paired with a dedicate
 
 Test your theoretical knowledge before tackling the practical lab missions:
 
-*   **[Take the Section 030 Knowledge Check Quiz](./quiz.md)**
+*   **[Take the Section 030 Knowledge Check Quiz](./quiz.yaml)**

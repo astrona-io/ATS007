@@ -1,8 +1,10 @@
-# Part 1 — apiVersion, kind, metadata & spec
+# apiVersion, kind, metadata & spec
 
-> Prerequisite: [Landing page](./course.md). Next: [Part 2 — Applying & Inspecting with kubectl](./course-02-applying-and-inspecting-with-kubectl.md).
+Astronaut, every Kubernetes object you have written, a Pod, a Deployment, a Service, has the same four-block shape: `apiVersion`, `kind`, `metadata` and `spec`. A Kyverno policy has that shape too, because a Kyverno policy *is* a Kubernetes object. Kyverno's installation registers it with the cluster as a Custom Resource Definition (CRD): a new kind of object that the API server stores and serves like a built-in one. There is no separate policy language, no `.rego` file and no compiler, just YAML the API server already knows how to store and serve.
 
-Every Kubernetes object you have ever written — a Pod, a Deployment, a Service — follows the same four-block shape: `apiVersion`, `kind`, `metadata`, `spec`. A Kyverno policy follows that shape too, because a Kyverno policy *is* a Kubernetes object, defined by a Custom Resource Definition (CRD) that the Kyverno installation registers with the cluster. There is no separate policy language to learn, no `.rego` files, no compiler — just YAML the API server already knows how to store, version, and serve.
+<!-- astrona:playground:renew -->
+
+Here is a complete policy, so you can see all four blocks at once. Save this as `require-team-label.yaml` and keep the file; you do not apply it in this part:
 
 ```yaml
 apiVersion: kyverno.io/v1
@@ -34,88 +36,87 @@ spec:
 
 ## apiVersion and kind: which object are you creating?
 
-`apiVersion: kyverno.io/v1` tells the API server which CRD's schema to validate this document against. `kind` then picks one of two shapes that CRD defines:
+`apiVersion: kyverno.io/v1` tells the API server which schema to check this document against. `kind` then picks one of the two shapes that schema defines:
 
-- **`ClusterPolicy`** — cluster-scoped. It has no `metadata.namespace`, and its rules can `match` resources in any namespace (or be scoped down with a `namespaces` list inside `match`).
-- **`Policy`** — namespaced, exactly like a Deployment. It lives inside one namespace (`metadata.namespace: storefront`), and its rules only ever see resources created in that same namespace, regardless of what the `match` block says.
+- **`ClusterPolicy`**: cluster-wide, a rule book for the whole solar system. It has no `metadata.namespace`, and its rules can `match` objects in any namespace, or be narrowed with a `namespaces` list inside `match`.
+- **`Policy`**: namespaced, exactly like a Deployment, a planet's own rule book. It lives inside one namespace (`metadata.namespace: storefront`), and its rules only ever see objects created in that same namespace, whatever the `match` block says.
 
-Both kinds share the identical `spec` schema underneath — rules, `validationFailureAction`, `background`, and so on all mean the same thing in either. The only difference is scope: a `ClusterPolicy` is a cluster administrator's tool for a rule that should apply everywhere; a `Policy` is what you hand to a team that owns one namespace and should not be able to affect anyone else's.
+Both kinds share the same `spec` underneath: rules, `validationFailureAction`, `background` and the rest mean the same thing in either. Only the scope differs. A `ClusterPolicy` is the cluster administrator's tool for a rule that applies everywhere. A `Policy` is what you give a team that owns one namespace and should not be able to affect anyone else's.
 
-> [!TIP]
-> **Try it — see both kinds registered as CRDs**
->
-> ```sh
-> kubectl get crd | grep kyverno.io
-> ```
->
-> Expect something like:
->
-> ```text
-> clusterpolicies.kyverno.io                           2024-01-01T00:00:00Z
-> policies.kyverno.io                                  2024-01-01T00:00:00Z
-> policyexceptions.kyverno.io                          2024-01-01T00:00:00Z
-> ...
-> ```
->
-> The exact list and timestamps vary with the Kyverno release. Both `clusterpolicies` and `policies` appear because installing Kyverno registered both kinds — that registration is what makes them ordinary, queryable cluster resources rather than files some external process reads.
+### See both kinds registered in your playground
 
-## metadata: name, namespace, and self-documenting annotations
+List the Kyverno CRDs on the cluster:
 
-`metadata.name` must be a valid DNS-1123 name, same rule as every other Kubernetes object. For a `Policy`, `metadata.namespace` decides which namespace's resources this policy can see.
+```sh
+kubectl get crd | grep kyverno.io
+```
 
-The `policies.kyverno.io/*` annotations (`title`, `category`, `description`, `subject`, `severity`) are not read by the admission-control logic at all — Kyverno's own decision to allow or deny a resource never looks at them. They exist purely for humans and tooling: `kubectl describe clusterpolicy` prints them, and policy-reporting dashboards (including the community Kyverno Policy Reporter) use them to group and label results. Skipping them costs you nothing functionally, but a policy with no `title`/`description` is much harder for a teammate to understand six months from now without opening the YAML.
+You should see something like:
 
-## spec: rules, and two switches that control blast radius
+```text
+clusterpolicies.kyverno.io                           2024-01-01T00:00:00Z
+policies.kyverno.io                                  2024-01-01T00:00:00Z
+policyexceptions.kyverno.io                          2024-01-01T00:00:00Z
+...
+```
 
-`spec.rules` is a list; each entry names one rule and picks exactly one action for it to perform against a matched resource — `validate`, `mutate`, `generate`, or `verifyImages` (rule types covered in Section 010). Two fields at the `spec` level, above the rules list, control how forgiving the whole policy is:
+The exact list and the timestamps depend on the Kyverno release. Both `clusterpolicies` and `policies` appear because installing Kyverno registered both kinds. That registration is what makes them ordinary objects you can query, not files some outside process reads.
 
-- **`validationFailureAction`** — `Enforce` blocks a non-compliant resource outright (the API server returns an error, `kubectl apply` fails); `Audit` lets the resource through but records the failure in a `PolicyReport` for later review. Teams typically roll out a new policy in `Audit` first, watch the reports for a while to catch false positives, then flip it to `Enforce`.
-- **`background`** — when `true`, Kyverno periodically re-evaluates this policy against resources that already exist in the cluster (not just ones being created right now), and records the results as `PolicyReport`/`ClusterPolicyReport` entries. This is how you find out that 40 Pods created *before* the policy existed are already non-compliant.
+## metadata: name, namespace and self-documenting annotations
 
-You do not have to take this field list on faith. Because the CRD carries an OpenAPI schema, `spec` is a typed object the API server can describe on demand — the same mechanism behind `kubectl explain deployment.spec`. If `kubectl explain` can walk a Kyverno policy's fields, those fields are genuinely part of the cluster's API surface, not a private format parsed somewhere else later.
+`metadata.name` must be a valid DNS-1123 name: lower-case letters, numbers and hyphens, the same rule as every other Kubernetes object. For a `Policy`, `metadata.namespace` decides which namespace's objects the policy can see.
 
-> [!TIP]
-> **Try it — read the policy schema out of the API server**
->
-> ```sh
-> kubectl explain clusterpolicy.spec
-> ```
->
-> Expect something like:
->
-> ```text
-> KIND:       ClusterPolicy
-> VERSION:    kyverno.io/v1
->
-> FIELD: spec <Object>
->
-> DESCRIPTION:
->     Spec declares policy behaviors.
->
-> FIELDS:
->   background    <boolean>
->   rules         <[]Object>
->   ...
-> ```
->
-> The exact field list depends on the Kyverno version. Swapping `clusterpolicy` for `policy` prints the same `spec` fields — the concrete proof that the two kinds share one schema and differ only in whether `metadata.namespace` is meaningful.
+The `policies.kyverno.io/*` annotations (`title`, `category`, `description`, `subject`, `severity`) are notes in the logbook. Kyverno's decision to allow or deny an object never reads them. They exist for people and tools: `kubectl describe clusterpolicy` prints them, and reporting dashboards (such as the community Kyverno Policy Reporter) use them to group and label results.
+
+Leaving them out changes nothing about how the policy works. But a policy with no `title` or `description` is much harder for a teammate to understand six months later without opening the YAML.
+
+## spec: rules, and two switches that set the reach
+
+`spec.rules` is a list. Each entry names one rule and picks exactly one action to take on a matched object: `validate`, `mutate`, `generate` or `verifyImages`. Two fields at the `spec` level, above the rules list, decide how strict the whole policy is:
+
+- **`validationFailureAction`**: `Enforce` blocks a failing object outright (the API server returns an error and `kubectl apply` fails). `Audit` lets the object through but records the failure in a `PolicyReport`, the planet's inspection log. Teams usually roll a new policy out in `Audit` first, watch the reports for false alarms, then switch it to `Enforce`.
+- **`background`**: when `true`, Kyverno also re-checks objects that already exist in the cluster, not just new ones, and records the results as `PolicyReport` or `ClusterPolicyReport` entries. This is how you find out that 40 Pods created *before* the policy existed already break it.
+
+You do not have to take this field list on trust. The CRD carries a schema, so the API server can describe `spec` on request, the same way `kubectl explain deployment.spec` works. If `kubectl explain` can walk a policy's fields, those fields really are part of the cluster's API.
+
+### Read the policy schema in your playground
+
+Ask the API server to describe a policy's `spec`:
+
+```sh
+kubectl explain clusterpolicy.spec
+```
+
+You should see something like:
+
+```text
+KIND:       ClusterPolicy
+VERSION:    kyverno.io/v1
+
+FIELD: spec <Object>
+
+DESCRIPTION:
+    Spec declares policy behaviors.
+
+FIELDS:
+  background    <boolean>
+  rules         <[]Object>
+  ...
+```
+
+The exact field list depends on the Kyverno version. Run it again with `policy` instead of `clusterpolicy` and you get the same `spec` fields. That proves the two kinds share one schema and only differ in whether `metadata.namespace` means anything.
+
+## Common pitfalls
 
 > [!WARNING]
-> **Common pitfalls**
->
-> - **Indenting `pattern` one level off.** The `validate.pattern` block must mirror the shape of the real resource exactly, starting from the resource's own root. Writing
+> - **Indenting `pattern` one level off.** The `validate.pattern` block must copy the shape of the real object exactly, starting from the object's own root. Leaving out the `metadata:` wrapper, like this:
 >   ```yaml
 >   validate:
 >     pattern:
 >       labels:
 >         team: "?*"
 >   ```
->   (missing the `metadata:` wrapper) does not error — it silently matches nothing, because no Pod has a top-level `labels` field outside `metadata`. The rule shows as `ready: true` and simply never fires. Always match the pattern's nesting against `kubectl explain <kind>` or a real resource's YAML, not against what feels natural to type.
-> - **Writing `kind: Policy` without `metadata.namespace`.** A `Policy` is namespaced. Applied without a namespace it lands in whatever namespace your current context defaults to (often `default`), and then silently governs nothing you care about. Either set `metadata.namespace` explicitly or pass `-n <namespace>` to `kubectl apply`.
+>   does not cause an error when you apply the policy. No Pod has a top-level `labels` field outside `metadata`, so the rule compares the wrong place in every Pod and does not check what you meant. The policy still shows as ready. Always check the pattern's nesting against `kubectl explain <kind>` or a real object's YAML, not against what feels natural to type.
+> - **Writing `kind: Policy` without `metadata.namespace`.** A `Policy` is namespaced. Applied without a namespace, it lands in your current default namespace (often `default`) and governs nothing you care about. Set `metadata.namespace`, or pass `-n <namespace>` to `kubectl apply`.
 
-*`apiVersion`/`kind` pick the schema; `metadata` names and documents it; `spec.rules` does the work — and `validationFailureAction`/`background` decide how loudly and how far back that work reaches.*
-
-## Reference
-
-- `kubectl explain clusterpolicy.spec` / `kubectl explain policy.spec` — the live schema for the version of Kyverno installed on your cluster.
-- [Kyverno policy structure docs](https://kyverno.io/docs/writing-policies/) — the canonical field-by-field reference this part only summarizes.
+> *`apiVersion` and `kind` pick the schema, `metadata` names and documents the policy, `spec.rules` does the work, and `validationFailureAction` and `background` decide how strictly and how far back that work reaches.*

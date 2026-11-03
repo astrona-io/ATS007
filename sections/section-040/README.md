@@ -24,6 +24,7 @@ This section is divided into two sequential modules, each paired with a dedicate
 *   **Module Reader:** **[Module 1: OCI Image Fundamentals & Supply Chain Risk](./module-01/course.md)**
     1. [OCI Manifests, Digests vs. Tags](./module-01/course-01-oci-manifests-digests-vs-tags.md)
     2. [Signing & Provenance: Cosign and SLSA](./module-01/course-02-signing-and-provenance-cosign-and-slsa.md)
+    3. [Summary](./module-01/course-03-summary.md)
 *   **Practice Lab Sandbox:** **`sections/section-040/module-01/labs/lab-01`**
 *   **Lab Run Command:**
     ```bash
@@ -35,6 +36,7 @@ This section is divided into two sequential modules, each paired with a dedicate
 *   **Module Reader:** **[Module 2: Verifying Images with Kyverno verifyImages](./module-02/course.md)**
     1. [verifyImages Rule Anatomy & Attestors](./module-02/course-01-verifyimages-rule-anatomy-and-attestors.md)
     2. [mutateDigest & Required Attestations](./module-02/course-02-mutatedigest-and-required-attestations.md)
+    3. [Summary](./module-02/course-03-summary.md)
 *   **Practice Lab Sandbox:** **`sections/section-040/module-02/labs/lab-01`**
 *   **Lab Run Command:**
     ```bash
@@ -42,7 +44,19 @@ This section is divided into two sequential modules, each paired with a dedicate
     ```
 *   **Hands-on Objective:** Write a `verifyImages` ClusterPolicy that requires a trusted Cosign signature for every image in the `edge` namespace, with `mutateDigest: true`, and confirm it blocks an unsigned image while admitting and digest-pinning the signed one.
 
-### 3. Section Capstone Challenge
+### 3. Image Rules: Registries, Tags & Variables
+*   **Module Reader:** **[Module 3: Image Rules: Registries, Tags & Variables](./module-03/course.md)**
+    1. [Registry and Tag Rules](./module-03/course-01-registry-and-tag-rules.md)
+    2. [The images Variable](./module-03/course-02-the-images-variable.md)
+    3. [Summary](./module-03/course-03-summary.md)
+*   **Practice Lab Sandbox:** **`sections/section-040/module-03/labs/lab-01`**
+*   **Lab Run Command:**
+    ```bash
+    astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-040/module-03/labs/lab-01
+    ```
+*   **Hands-on Objective:** Allow images only from one registry, require a tag and forbid `latest`, using the `images` variable.
+
+### 4. Section Capstone Challenge
 *   **Comprehensive Challenge:** **`sections/section-040/capstone/labs/lab-01` (OCI Image Trust Integration)**
 *   **Lab Run Command:**
     ```bash
@@ -56,4 +70,4 @@ This section is divided into two sequential modules, each paired with a dedicate
 
 Test your theoretical knowledge before tackling the practical lab missions:
 
-*   **[Take the Section 040 Knowledge Check Quiz](./quiz.md)**
+*   **[Take the Section 040 Knowledge Check Quiz](./quiz.yaml)**

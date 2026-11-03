@@ -56,7 +56,19 @@ This section is divided into three modules, each paired with a dedicated graded 
     ```
 *   **Hands-on Objective:** Evaluate a policy against two manifests offline with `kyverno apply`, then author a `kyverno-test.yaml` asserting one resource must pass and the other must fail, and prove it with `kyverno test`.
 
-### 4. Section Capstone Challenge
+### 4. Policy Packaging: Metadata & Kustomize
+*   **Module Reader:** **[Module 4: Policy Packaging: Metadata & Kustomize](./module-04/course.md)**
+    1. [Policy Metadata Annotations](./module-04/course-01-policy-metadata-annotations.md)
+    2. [Kustomize Overlays for Policies](./module-04/course-02-kustomize-overlays-for-policies.md)
+    3. [Summary](./module-04/course-03-summary.md)
+*   **Practice Lab Sandbox:** **`sections/section-020/module-04/labs/lab-01`**
+*   **Lab Run Command:**
+    ```bash
+    astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-020/module-04/labs/lab-01
+    ```
+*   **Hands-on Objective:** Build a `prod` Kustomize overlay that turns a base policy to `Enforce` and adds a label and policy annotations.
+
+### 5. Section Capstone Challenge
 *   **Comprehensive Challenge:** **`sections/section-020/capstone/labs/lab-01` (YAML Manifests Integration)**
 *   **Lab Run Command:**
     ```bash
@@ -70,4 +82,4 @@ This section is divided into three modules, each paired with a dedicated graded 
 
 Test your theoretical knowledge before tackling the practical lab missions:
 
-*   **[Take the Section 020 Knowledge Check Quiz](./quiz.md)**
+*   **[Take the Section 020 Knowledge Check Quiz](./quiz.yaml)**

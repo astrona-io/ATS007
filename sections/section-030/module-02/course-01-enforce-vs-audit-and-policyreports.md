@@ -1,6 +1,4 @@
-# Part 1 — Enforce vs Audit & PolicyReports
-
-> Prerequisite: [Landing page](./course.md). Next: [Part 2 — Background Scanning & Controllers](./course-02-background-scanning-and-controllers.md).
+# Enforce vs Audit & PolicyReports
 
 Every Kyverno `validate` rule runs under one of two modes, set by `spec.validationFailureAction` on the policy (or overridden per-rule):
 
@@ -39,7 +37,7 @@ That design choice is what makes Audit mode operationally useful rather than mer
 Because `PolicyReport` gives you a dry-run of enforcement across the whole fleet, the standard operational sequence for rolling out any new Kyverno policy is:
 
 1. Author the policy with `validationFailureAction: Audit` and `background: true`.
-2. Deploy it. Wait for the background scan to complete (Part 2 covers this).
+2. Deploy it. Wait for the background scan to complete.
 3. Review `PolicyReport`/`ClusterPolicyReport` results across every namespace the policy applies to.
 4. Fix non-compliant resources, or refine the policy if the reports reveal it was too strict or matched the wrong resources.
 5. Once reports are clean (or the remaining failures are accepted/tracked), flip `validationFailureAction` to `Enforce`.
@@ -94,7 +92,7 @@ Step 1 is worth doing for real. The policy below requires a `cost-center` label 
 
 ## Reading a PolicyReport
 
-The summary columns tell you *how many* results there are. To act on them you need to know which resource failed which rule and why, which means reading the report object itself. Kyverno populates it with one result entry per resource per rule evaluated, whether that evaluation happened at admission time or during a background scan (covered in Part 2).
+The summary columns tell you *how many* results there are. To act on them you need to know which resource failed which rule and why, which means reading the report object itself. Kyverno populates it with one result entry per resource per rule evaluated, whether that evaluation happened at admission time or during a background scan.
 
 Report objects for a `ClusterPolicy` are named `cpol-<policy-name>`, so the report produced above is `cpol-require-cost-center-label`:
 
@@ -116,7 +114,7 @@ results:
     check-cost-center-label failed at path /metadata/labels/cost-center/"
 ```
 
-The resource named here, `legacy-etl`, was already running in `analytics` before the policy existed and carries no `cost-center` label. Part 2 explains why a resource that never passed through the webhook again still ended up in this report.
+The resource named here, `legacy-etl`, was already running in `analytics` before the policy existed and carries no `cost-center` label. It ended up in this report because of background scanning: Kyverno re-checks existing resources on a schedule, even when nobody re-applies them.
 
 This is the entire value proposition of Audit mode: you get the exact list of resources a policy *would* have blocked, without blocking a single one of them, before you commit to `Enforce`.
 
@@ -129,6 +127,51 @@ This is the entire value proposition of Audit mode: you get the exact list of re
 >
 > Expect a `fail` result entry naming the specific Deployment and rule that produced it, matching the shape shown above. Field rendering varies slightly with your `kubectl`/`jq` version, but `result` and `message` are always present. Filtering server-side output this way is how you turn a fleet-wide report set into a work list.
 
+## See it in your playground
+
+<!-- astrona:playground:renew -->
+
+The playground has a namespace `analytics` with a running Deployment `legacy-etl` that has no `cost-center` label. Save this as `clusterpolicy-require-cost-center-label.yaml`:
+
+```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-cost-center-label
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: check-cost-center-label
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+              namespaces:
+                - analytics
+      validate:
+        message: "Deployments must carry a cost-center label."
+        pattern:
+          metadata:
+            labels:
+              cost-center: "?*"
+```
+
+Apply it:
+
+```sh
+kubectl apply -f clusterpolicy-require-cost-center-label.yaml
+```
+
+Wait a few seconds for the scan, then read the report that Kyverno wrote:
+
+```sh
+kubectl get policyreport -n analytics
+```
+
+The report lists a result for `legacy-etl`. Read the totals with `kubectl get policyreport -n analytics -o jsonpath='{.items[*].summary}'`. The `fail` count is at least 1, and `legacy-etl` keeps running, because `Audit` only records.
+
 > [!WARNING]
 > **Common pitfalls**
 >
@@ -136,8 +179,3 @@ This is the entire value proposition of Audit mode: you get the exact list of re
 > - **Expecting `Enforce` to clean up what is already running.** Flipping a policy to `Enforce` stops *new* non-compliant resources at admission. It does not touch, evict, or fix resources admitted before the policy existed — `legacy-etl` keeps running regardless. Existing violations are found by background scanning and fixed by you.
 
 > *Audit does not mean off — it means evaluated, recorded, and not yet blocking.*
-
-## Reference
-
-- `kubectl explain clusterpolicy.spec.validationFailureAction` — confirms the two accepted values on the installed CRD.
-- Kyverno documentation: "Policy Reports" — the full schema of `PolicyReport`/`ClusterPolicyReport`, including the `summary` field that totals pass/fail/warn/error/skip counts.

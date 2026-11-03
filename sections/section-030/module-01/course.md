@@ -46,7 +46,3 @@ After this module you can:
 You should be comfortable with basic `kubectl` usage (`get`, `apply`, `describe`) and know what a Kubernetes CRD is in general terms. No prior admission-control or Kyverno experience is assumed.
 
 The linked playground gives you a fresh **kind** Kubernetes cluster with Kyverno already installed and `kubectl` already pointed at it — there is no VM and no SSH step. It deliberately starts with **zero policies installed**, which matters for this module: several checkpoints in the parts below are only meaningful on a cluster where you control exactly which policies exist. Every command in both parts runs against that cluster.
-
-## Where this fits
-
-Admission control is the foundation the rest of this course sits on. Every Kyverno feature you will meet later — validate rules that reject a Pod, mutate rules that rewrite one, `verifyImages` rules that check a signature — is ultimately a callback the API server makes during one of the two admission stages above. Policy authors who skip this model tend to hit the same wall: they write a correct policy, it never fires, and they debug the policy for an hour when the real answer is that the API server was never configured to call Kyverno for that resource kind in the first place. Knowing where the callback happens tells you where to look when nothing happens.

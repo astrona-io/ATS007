@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-018"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "seed-prod-namespace"
+      description: "Creates the prod namespace"
+      type: "file"
+      source: "bootstrap/02-seed-prod-namespace.sh"
+
+validation:
+  scripts:
+    - name: "verify-seed-prod-namespace"
+      description: "Confirms the policy exists and judges four test images correctly"
+      type: "file"
+      source: "validation/validate-completed.sh"

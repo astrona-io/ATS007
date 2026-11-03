@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-015"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "seed-shop-namespace"
+      description: "Creates the shop namespace"
+      type: "file"
+      source: "bootstrap/02-seed-shop-namespace.sh"
+
+validation:
+  scripts:
+    - name: "verify-seed-shop-namespace"
+      description: "Confirms the policy blocks Pods and Deployments without a team label and the exception admits only legacy-batch"
+      type: "file"
+      source: "validation/validate-completed.sh"

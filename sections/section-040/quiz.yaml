@@ -1,0 +1,266 @@
+# Knowledge check for section 040. Listed in astrona.yaml as a `type: quiz` entry after the capstone lab.
+schema_version: 1
+kind: question_bank
+id: ats007-040
+course_id: ATS007
+exam_code: KCA
+status: draft
+provenance: Original practice material written for this course; not official exam questions.
+scope:
+  type: section
+  id: section-040
+  title: "OCI Images"
+questions:
+  - id: ats007-040-q01
+    type: single_choice
+    difficulty: beginner
+    learning_objective: Explain why a tag and a digest are not the same reference
+    source_readings:
+    - sections/section-040/module-01/course-01-oci-manifests-digests-vs-tags.md
+    prompt: A colleague argues that `myapp:1.4.0` and `myapp@sha256:3f29b8...` are just two different ways of writing "the same reference." Why is this claim wrong?
+    options:
+    - id: a
+      text: Digest references are slower to resolve than tag references, but otherwise identical.
+      explanation: Invents a performance distinction that isn't the actual difference.
+    - id: b
+      text: A tag is a mutable pointer a registry can repoint to a different manifest at any time; a digest names one specific, immutable manifest forever.
+      explanation: Correct. A tag is a label the registry stores as a pointer to whatever manifest digest was most recently pushed under that name — it can be repointed. A digest reference names the manifest by its own content hash, so it can only ever resolve to one exact set of bytes.
+    - id: c
+      text: Tags only work with Docker Hub; digests only work with private registries.
+      explanation: Both reference forms work with any OCI-conformant registry.
+    - id: d
+      text: They are exactly the same; the claim is correct.
+      explanation: Ignores the mutability difference that is the entire point.
+    correct_option: b
+    explanation: A tag is a label the registry stores as a pointer to whatever manifest digest was most recently pushed under that name — it can be repointed. A digest reference names the manifest by its own content hash, so it can only ever resolve to one exact set of bytes.
+
+  - id: ats007-040-q02
+    type: single_choice
+    difficulty: beginner
+    learning_objective: Find the digest a running Pod pulled
+    source_readings:
+    - sections/section-040/module-01/course-01-oci-manifests-digests-vs-tags.md
+    prompt: You want to know exactly what image bytes a running Pod actually pulled, independent of whatever tag was written in its spec. Which field do you check?
+    options:
+    - id: a
+      text: "`.spec.containers[0].image`"
+      explanation: This option is not correct.
+    - id: b
+      text: "`.status.containerStatuses[0].image`"
+      explanation: This option is not correct.
+    - id: c
+      text: "`.status.containerStatuses[0].imageID`"
+      explanation: Correct. `imageID` is the only field that reports the digest the kubelet actually resolved and pulled. Both the spec and the status `image` fields simply echo whatever reference string (tag or digest) was written in the Pod spec.
+    - id: d
+      text: "`.metadata.annotations.image`"
+      explanation: Is not a real, populated field for this purpose.
+    correct_option: c
+    explanation: "`imageID` is the only field that reports the digest the kubelet actually resolved and pulled. Both the spec and the status `image` fields simply echo whatever reference string (tag or digest) was written in the Pod spec."
+
+  - id: ats007-040-q03
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: State what a valid signature proves
+    source_readings:
+    - sections/section-040/module-01/course-02-signing-and-provenance-cosign-and-slsa.md
+    prompt: What does a valid Cosign signature on an image digest actually prove?
+    options:
+    - id: a
+      text: That the image contains no known vulnerabilities.
+      explanation: This option is not correct.
+    - id: b
+      text: That the image was built by an approved CI pipeline.
+      explanation: This option is not correct.
+    - id: c
+      text: That the holder of a specific key (or verified identity) vouched for that exact digest.
+      explanation: 'Correct. A signature is narrow and specific: it proves who (which key or identity) vouched for a specific digest. It says nothing on its own about vulnerability status or build process.'
+    - id: d
+      text: That the image has never been pulled by an unauthorized user.
+      explanation: Describes pull authorization, which is a registry access-control concern, unrelated to signing.
+    correct_option: c
+    explanation: 'A signature is narrow and specific: it proves who (which key or identity) vouched for a specific digest. It says nothing on its own about vulnerability status or build process.'
+
+  - id: ats007-040-q04
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Pick the signing mode that works offline
+    source_readings:
+    - sections/section-040/module-01/course-02-signing-and-provenance-cosign-and-slsa.md
+    prompt: Which Cosign signing mode is fully offline-capable, requiring no external service to be reachable at sign or verify time?
+    options:
+    - id: a
+      text: Keyless signing via Fulcio and Rekor.
+      explanation: Keyless signing depends on reaching Sigstore's public Fulcio CA and Rekor transparency log.
+    - id: b
+      text: Keyed signing with a locally generated public/private keypair.
+      explanation: Correct. Keyed signing only needs the private key to sign and the public key to verify — both can be generated and distributed entirely offline.
+    - id: c
+      text: Both modes require the same external services.
+      explanation: This option is not correct.
+    - id: d
+      text: Neither mode can function without a live internet connection.
+      explanation: This option is not correct.
+    correct_option: b
+    explanation: Keyed signing only needs the private key to sign and the public key to verify — both can be generated and distributed entirely offline.
+
+  - id: ats007-040-q05
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: 'Explain what required: true changes'
+    source_readings:
+    - sections/section-040/module-02/course-01-verifyimages-rule-anatomy-and-attestors.md
+    prompt: 'In a Kyverno `verifyImages` rule, what does setting `required: true` change?'
+    options:
+    - id: a
+      text: It requires the image to be pulled from Docker Hub specifically.
+      explanation: Invents a restriction `verifyImages` does not impose.
+    - id: b
+      text: An image with no signature at all is rejected, not just one signed by an untrusted key.
+      explanation: 'Correct. Without `required: true`, an image carrying no signature at all simply has nothing for the rule to judge and can pass through unverified. `required: true` closes that gap by rejecting unsigned images outright.'
+    - id: c
+      text: It forces `mutateDigest` to also be enabled.
+      explanation: "`mutateDigest` is an independent, separately-set field."
+    - id: d
+      text: 'It requires the Pod to specify `imagePullPolicy: Always`.'
+      explanation: Confuses an unrelated kubelet pull-policy setting with signature enforcement.
+    correct_option: b
+    explanation: 'Without `required: true`, an image carrying no signature at all simply has nothing for the rule to judge and can pass through unverified. `required: true` closes that gap by rejecting unsigned images outright.'
+
+  - id: ats007-040-q06
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Explain what mutateDigest solves
+    source_readings:
+    - sections/section-040/module-02/course-02-mutatedigest-and-required-attestations.md
+    prompt: 'What problem does `mutateDigest: true` solve on a `verifyImages` rule?'
+    options:
+    - id: a
+      text: It speeds up image pulls by caching the manifest.
+      explanation: Invents a caching behavior that isn't what this field does.
+    - id: b
+      text: It rewrites the Pod's image reference from its tag to the exact digest that was verified, so the tag can no longer be silently repointed underneath the running Pod.
+      explanation: Correct. After verifying the signature against the digest the tag currently resolves to, Kyverno rewrites the Pod's stored image field to that exact digest before persisting it — closing the tag-mutation/TOCTOU gap for that specific Pod permanently.
+    - id: c
+      text: It automatically signs unsigned images on the learner's behalf.
+      explanation: Kyverno verifies signatures, it never creates them.
+    - id: d
+      text: It disables the kubelet's own image pull entirely.
+      explanation: The kubelet still performs the pull, now against the pinned digest.
+    correct_option: b
+    explanation: After verifying the signature against the digest the tag currently resolves to, Kyverno rewrites the Pod's stored image field to that exact digest before persisting it — closing the tag-mutation/TOCTOU gap for that specific Pod permanently.
+
+  - id: ats007-040-q07
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Explain why to add attestations to attestors
+    source_readings:
+    - sections/section-040/module-02/course-02-mutatedigest-and-required-attestations.md
+    prompt: Why would a policy author add an `attestations` block to a `verifyImages` rule, on top of an `attestors` block?
+    options:
+    - id: a
+      text: "`attestations` are required syntax; a rule cannot function without them."
+      explanation: Is false — `attestations` is optional.
+    - id: b
+      text: To require a signed predicate about *how* the image was produced (e.g. which CI pipeline built it), not just *who* signed it.
+      explanation: Correct. A bare signature only proves identity. An `attestations` block requires a signed in-toto/SLSA-style predicate and evaluates conditions against it, letting a rule demand proof of *process* (e.g. built by an approved pipeline) in addition to proof of *identity*.
+    - id: c
+      text: To skip signature verification entirely and rely on attestations instead.
+      explanation: Is backwards — attestations are evaluated in addition to, not instead of, signature verification.
+    - id: d
+      text: To automatically generate a Cosign keypair for the cluster.
+      explanation: Is unrelated to what this field configures.
+    correct_option: b
+    explanation: A bare signature only proves identity. An `attestations` block requires a signed in-toto/SLSA-style predicate and evaluates conditions against it, letting a rule demand proof of *process* (e.g. built by an approved pipeline) in addition to proof of *identity*.
+
+  - id: ats007-040-q08
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Roll out a verifyImages policy safely
+    source_readings:
+    - sections/section-040/module-02/course-02-mutatedigest-and-required-attestations.md
+    prompt: 'Before rolling a new `verifyImages` policy out cluster-wide with `validationFailureAction: Enforce`, why is it strongly recommended to first run it with `validationFailureAction: Audit`?'
+    options:
+    - id: a
+      text: Audit mode runs faster than Enforce mode.
+      explanation: Invents a performance claim that isn't the reason.
+    - id: b
+      text: A misconfigured attestor (wrong key, unreachable registry) under Enforce blocks every matching Pod's admission immediately and cluster-wide; Audit surfaces the same findings as `PolicyReport` entries without blocking anything.
+      explanation: Correct. Because `verifyImages` reaches out to the live registry on every matching admission, any misconfiguration (wrong attestor key, unreachable registry) under Enforce fails closed for every matching Pod the instant the policy is applied. Audit mode records the same pass/fail findings as `PolicyReport` entries, letting you validate correctness with zero blast radius before switching to Enforce.
+    - id: c
+      text: Enforce mode is deprecated in current Kyverno releases.
+      explanation: Is false — Enforce remains a fully supported mode.
+    - id: d
+      text: Audit mode automatically fixes signature mismatches.
+      explanation: Is false — Audit only reports; it never remediates automatically.
+    correct_option: b
+    explanation: Because `verifyImages` reaches out to the live registry on every matching admission, any misconfiguration (wrong attestor key, unreachable registry) under Enforce fails closed for every matching Pod the instant the policy is applied. Audit mode records the same pass/fail findings as `PolicyReport` entries, letting you validate correctness with zero blast radius before switching to Enforce.
+
+  - id: ats007-040-q09
+    type: single_choice
+    difficulty: beginner
+    learning_objective: Write an allowed-registry pattern
+    source_readings:
+    - sections/section-040/module-03/course-01-registry-and-tag-rules.md
+    prompt: You want Pods in `prod` to use only images from `registry.k8s.io`. Which pattern value for `image` does that?
+    options:
+    - id: a
+      text: "`registry.k8s.io`"
+      explanation: This matches only that exact string, never a full image name.
+    - id: b
+      text: "`registry.k8s.io/*`"
+      explanation: Correct. The star matches the rest of the image path and tag.
+    - id: c
+      text: "`*registry.k8s.io`"
+      explanation: This matches names that end with the registry, which is not what you want.
+    - id: d
+      text: "`!registry.k8s.io/*`"
+      explanation: The leading `!` means must not match.
+    correct_option: b
+    explanation: In a pattern, `*` stands for any characters, so `registry.k8s.io/*` matches every image on that registry.
+
+  - id: ats007-040-q10
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Explain why forbidding latest is not enough
+    source_readings:
+    - sections/section-040/module-03/course-01-registry-and-tag-rules.md
+    prompt: 'A rule says `image: "!*:latest"`. A Pod uses the image `registry.k8s.io/pause` with no tag. What happens?'
+    options:
+    - id: a
+      text: It is rejected, because no tag means latest.
+      explanation: The pattern checks the text, and the text has no `:latest`.
+    - id: b
+      text: It passes this rule, because the text does not contain `:latest`. A separate rule must require a tag.
+      explanation: Correct. An untagged image slips through a rule that only forbids the word latest.
+    - id: c
+      text: Kyverno adds the tag `3.9`.
+      explanation: Kyverno does not invent tags.
+    - id: d
+      text: It is rejected because the registry is wrong.
+      explanation: The registry is allowed in this example.
+    correct_option: b
+    explanation: A pattern reads the image text. Without `:latest` in it the rule passes, so add a rule that requires a tag such as `"*:*"`.
+
+  - id: ats007-040-q11
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Read the registry from the images variable
+    source_readings:
+    - sections/section-040/module-03/course-02-the-images-variable.md
+    prompt: In the `images` variable, which registry does Kyverno report for the image `nginx:1.27`?
+    options:
+    - id: a
+      text: An empty string.
+      explanation: Kyverno fills in the default.
+    - id: b
+      text: "`docker.io`"
+      explanation: Correct. An image name with no registry gets `docker.io`, and a missing tag gets `latest`.
+    - id: c
+      text: "`registry.k8s.io`"
+      explanation: That would only be so if the image said so.
+    - id: d
+      text: "`localhost`"
+      explanation: Kyverno does not use `localhost` as a default.
+    correct_option: b
+    explanation: A bare image name gets the registry `docker.io`. A missing tag becomes `latest` in the `images` variable.
+

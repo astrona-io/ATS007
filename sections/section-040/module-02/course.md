@@ -39,7 +39,7 @@ After this module you can:
 
 ## Before you start
 
-Complete Module 1 first — this module assumes you already understand digests, tags, and what a Cosign signature proves.
+You should already know what a digest and a tag are, and what a Cosign signature proves.
 
 The linked playground gives you a kind Kubernetes cluster with `kubectl` already pointed at it — there is no VM and no SSH step. Kyverno is installed, `crane` and `cosign` are on your `PATH`, and an in-cluster registry at `registry.registry-system.svc.cluster.local:5000` holds two images built from the same base:
 
@@ -49,7 +49,3 @@ The linked playground gives you a kind Kubernetes cluster with `kubectl` already
 The matching public key is published as `configmap/cosign-pubkey` in the `edge` namespace and left at `/tmp/cosign.pub`. No `verifyImages` policy exists yet — writing one is the point.
 
 All command output shown in the parts is representative; **digests will differ from what is printed here**.
-
-## Where this fits
-
-`verifyImages` is the only rule action in this curriculum that makes an outbound network call during admission. A `validate` rule reasons purely about the object in front of it; a `verifyImages` rule has to reach the registry, fetch signature artifacts, and check cryptography before it can answer — which puts registry reachability and key management on the critical path of every matching Pod creation, cluster-wide. That is a meaningful operational commitment, and it is the reason this module spends as much time on failure modes as on syntax.

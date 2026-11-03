@@ -1,6 +1,4 @@
-# Part 1 — OCI Manifests, Digests vs. Tags
-
-> Prerequisite: [Landing page](./course.md). Next: [Part 2 — Signing & Provenance: Cosign and SLSA](./course-02-signing-and-provenance-cosign-and-slsa.md).
+# OCI Manifests, Digests vs. Tags
 
 ## The image is a small object graph, not a file
 
@@ -116,6 +114,54 @@ Both methods above need a Pod that already exists. To learn what a tag points at
 
 That property is what makes `crane digest` usable as evidence. Record the digest a tag resolves to today, run the same command after a suspected repush, and a changed value proves the tag moved — regardless of what any manifest in Git says.
 
+## See it in your playground
+
+<!-- astrona:playground:renew -->
+
+The playground has a Deployment `edge-api` in the `edge` namespace that uses a tag. Ask the cluster which digest the running Pod actually pulled:
+
+```sh
+kubectl -n edge get pod -o jsonpath='{.items[0].status.containerStatuses[0].imageID}'
+```
+
+Ask the registry what the tag points to right now, with `crane`, a small registry client:
+
+```sh
+crane digest docker.io/library/nginx:1.25-alpine
+```
+
+The two digests should match today. The tag could point somewhere else next month, but the digest never will. Now look inside the manifest to see the config and layer digests it lists:
+
+```sh
+crane manifest docker.io/library/nginx:1.25-alpine
+```
+
+Every entry in the output is a digest. A manifest is a list of digests, and its own digest is the identity of the whole image.
+
+## Your mission: Digest Pinning Lab
+
+You can now do the skill this part teaches on a live cluster. The mission asks you to do it again on a fresh one.
+
+First pause the playground:
+
+```sh
+astrona stop section-040-module-01-playground
+```
+
+Then run the mission and submit your work:
+
+```sh
+astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-040/module-01/labs/lab-01
+astrona submit
+```
+
+When you are done, remove the mission and start the playground again:
+
+```sh
+astrona destroy ats-007-lab-011
+astrona start section-040-module-01-playground
+```
+
 > [!WARNING]
 > **Common pitfalls**
 >
@@ -125,9 +171,3 @@ That property is what makes `crane digest` usable as evidence. Record the digest
 > - **Pinning to a digest once and never revisiting it.** A digest pin is only as good as the review that approved it. Rotating to a new, re-reviewed digest on every legitimate release is the point — not freezing forever on one image.
 
 > *A tag answers "what did I ask for"; a digest answers "what did I actually get" — and only the second question is safe to build trust decisions on.*
-
-## Reference
-
-- [OCI Image Format Specification](https://github.com/opencontainers/image-spec) — the manifest/config/layer schema this part summarizes.
-- [OCI Distribution Specification](https://github.com/opencontainers/distribution-spec) — the registry HTTP API every registry in this course implements.
-- `crane digest --help` — the registry-introspection tool used above.

@@ -1,117 +1,113 @@
-# Part 1 — ClusterPolicy vs Policy & Rule Anatomy
+# ClusterPolicy vs Policy & Rule Anatomy
 
-> Prerequisite: [Landing page](./course.md). Next: [Part 2 — Match, Exclude & Resource Selection](./course-02-match-exclude-and-resource-selection.md).
-
-This part settles what a Kyverno policy *is* as an object, which of the two policy kinds to reach for, and how the `rules` list inside one is put together. Part 2 builds directly on the `match` block sketched here.
+Astronaut, before you write a rule book, you need to know what a rule book looks like. This part shows what a Kyverno policy *is* as an object, which of the two policy kinds to pick, and how the list of rules inside a policy is built.
 
 ## Policies are Kubernetes resources
 
-Install Kyverno onto a cluster and it registers a handful of Custom Resource Definitions (CRDs), the two most important being `ClusterPolicy` and `Policy`. Both are ordinary Kubernetes objects: they live in etcd, they show up in `kubectl get`, and — critically — they are watched by Kyverno's own controllers, which turn them into live admission-control behavior.
+When Kyverno is installed, it adds new object types to the cluster. Kubernetes calls them Custom Resource Definitions (CRDs): new kinds of object that the API server (mission control) stores and serves like any built-in kind. The two most important ones are `ClusterPolicy` and `Policy`.
 
-This matters more than it sounds. It means a Kyverno policy can be:
+Both are ordinary Kubernetes objects. They are stored in etcd (mission control's archive), they show up in `kubectl get`, and Kyverno's own controllers watch them. When you apply a policy, those controllers turn it into live checks on every matching request.
 
-- Reviewed in a pull request, next to the workload manifests it governs.
-- Applied with the exact same tooling (`kubectl`, Helm, Argo CD, Flux) you already use for everything else.
-- Read by anyone who already knows YAML and the Kubernetes resource model — no Rego, no Cedar, no separate expression language to learn.
+That has three useful results. A Kyverno policy can be:
 
-There is a practical payoff beyond convenience. Because the API server holds the schema for these CRDs, you do not need Kyverno-specific tooling to discover what a rule may contain — `kubectl explain` walks the same schema the API server validates against.
+- Reviewed in a pull request, next to the workload files it governs.
+- Applied with the tools you already use for everything else (`kubectl`, Helm, Argo CD, Flux).
+- Read by anyone who knows YAML and Kubernetes objects. There is no Rego, no Cedar and no separate expression language to learn.
 
-> [!TIP]
-> **Try it — read the rule schema straight from the cluster**
->
-> ```sh
-> kubectl explain clusterpolicy.spec.rules --recursive | head -20
-> ```
->
-> Expect something like:
->
-> ```text
-> GROUP:      kyverno.io
-> KIND:       ClusterPolicy
-> FIELDS:
->   match     <Object>
->   exclude   <Object>
->   validate  <Object>
->   mutate    <Object>
->   ...
-> ```
->
-> The exact field list and ordering vary by Kyverno version. The point is that the rule schema is discoverable from the cluster itself — when you are unsure whether a field exists on the version you are running, this answers it authoritatively.
+There is one more benefit. The API server holds the schema for these new kinds, so you do not need special Kyverno tools to find out what a rule may contain. `kubectl explain` reads the same schema the API server checks against.
+
+<!-- astrona:playground:renew -->
+
+### See the rule schema in your playground
+
+Ask the cluster which fields a rule may have:
+
+```sh
+kubectl explain clusterpolicy.spec.rules --recursive | head -20
+```
+
+You should see something like:
+
+```text
+GROUP:      kyverno.io
+KIND:       ClusterPolicy
+FIELDS:
+  match     <Object>
+  exclude   <Object>
+  validate  <Object>
+  mutate    <Object>
+  ...
+```
+
+The exact field list and order change between Kyverno versions. What matters is that the cluster itself can tell you the rule schema. When you are not sure a field exists on your version, this command gives the real answer.
 
 ## ClusterPolicy vs Policy
 
-Kyverno gives you two kinds of policy resource, and the choice between them is purely about scope:
+Kyverno gives you two kinds of policy object. The only difference between them is scope: how far their authority reaches.
 
 | Kind | Scope | Typical use |
 | --- | --- | --- |
-| `ClusterPolicy` | Cluster-wide — its rules can match resources in any namespace (or cluster-scoped resources) unless you narrow them | Organization-wide guardrails: "every Pod everywhere must set resource limits" |
-| `Policy` | Namespace-scoped — lives inside one namespace, and its rules can only ever match resources in that same namespace | Team- or tenant-specific rules a namespace owner controls themselves |
+| `ClusterPolicy` | Cluster-wide. Its rules can match objects in any namespace, and cluster-scoped objects, unless you narrow them | Guardrails for the whole organisation: "every Pod everywhere must set resource limits" |
+| `Policy` | Namespaced. It lives inside one namespace, and its rules can only match objects in that same namespace | Rules a team or tenant controls for its own namespace |
 
-Both kinds share the exact same `spec` structure underneath — the same `rules`, `match`, `exclude`, and action blocks you'll see below. The only difference is where the object itself lives and how far its authority reaches.
+In space terms, a `ClusterPolicy` is a rule book for the whole solar system. A `Policy` is one planet's own rule book: it can only cover ships on that planet.
 
-That scope difference is not just documentation; it is recorded in the API registration itself, in the `NAMESPACED` column.
+Both kinds share the exact same `spec` underneath: the same `rules`, `match`, `exclude` and action blocks shown later in this part. Only where the object lives, and how far it reaches, is different.
 
-> [!TIP]
-> **Try it — see both kinds registered**
->
-> ```sh
-> kubectl api-resources --api-group=kyverno.io
-> ```
->
-> Expect something like:
->
-> ```text
-> NAME                 SHORTNAMES   APIVERSION      NAMESPACED   KIND
-> cleanuppolicies      cleanpol     kyverno.io/v2   true         CleanupPolicy
-> clusterpolicies      cpol         kyverno.io/v1   false        ClusterPolicy
-> policies             pol          kyverno.io/v1   true         Policy
-> ```
->
-> The exact CRD list varies by Kyverno version. `clusterpolicies` reports `NAMESPACED false` while `policies` reports `true` — that single column is the entire scoping story.
+### See both kinds in your playground
 
-Because they are two distinct resource types rather than one type with a flag, they are also two distinct queries. A `Policy` will never turn up in a `ClusterPolicy` listing, which is worth seeing directly before you go looking for a policy that seems to have vanished.
+The scope difference is written into the API registration itself, in the `NAMESPACED` column. List the Kyverno kinds:
 
-> [!TIP]
-> **Try it — query the two scopes separately**
->
-> ```sh
-> kubectl get clusterpolicy
-> kubectl get policy --all-namespaces
-> ```
->
-> Expect something like:
->
-> ```text
-> Warning: kyverno.io/v1 ClusterPolicy is deprecated and will be removed in a future release; migrate to ValidatingPolicy, MutatingPolicy, GeneratingPolicy or ImageValidatingPolicy (policies.kyverno.io), see https://kyverno.io/docs/guides/migration-to-cel/
-> No resources found
-> Warning: kyverno.io/v1 Policy is deprecated and will be removed in a future release; migrate to NamespacedValidatingPolicy and the other namespaced policy types (policies.kyverno.io), see https://kyverno.io/docs/guides/migration-to-cel/
-> No resources found
-> ```
->
-> Both are empty on a fresh playground — nothing is pre-created. The point is that these are two separate queries against two separate resource types: a `Policy` in `catalog` will never appear in the first listing, and no amount of `match` configuration will make it apply to `sandbox`.
->
-> The two `Warning:` lines are expected — see the note below. They come from the API server, not from a mistake on your side, and they appear on every `kubectl` command that touches these two kinds.
+```sh
+kubectl api-resources --api-group=kyverno.io
+```
 
-> [!IMPORTANT]
-> **About that deprecation warning**
->
-> This playground runs Kyverno v1.19.1, and from v1.19 onwards Kyverno prints a deprecation warning whenever you read or write a `kyverno.io/v1` `ClusterPolicy` or `Policy`:
->
-> ```text
-> Warning: kyverno.io/v1 ClusterPolicy is deprecated and will be removed in a future release; migrate to ValidatingPolicy, MutatingPolicy, GeneratingPolicy or ImageValidatingPolicy (policies.kyverno.io), see https://kyverno.io/docs/guides/migration-to-cel/
-> ```
->
-> Three things to take from it, in order of what matters to you right now:
->
-> 1. **Nothing is broken.** A warning is not an error. The policy is still accepted, still stored, still enforced by the admission controller exactly as this course describes. v1.19 is the last release with *full* support for the legacy kinds, so everything you do here works end to end.
-> 2. **This course deliberately stays on `ClusterPolicy` and `Policy`.** The KCA exam and its published curriculum are written against these kinds, so that is what you will be examined on. Learning the deprecated-but-examined API is the correct trade-off while the exam papers say so.
-> 3. **The replacement is the CEL-based policy family.** Kyverno is moving toward `ValidatingPolicy`, `MutatingPolicy`, `GeneratingPolicy` and `ImageValidatingPolicy` in the `policies.kyverno.io` group (and `NamespacedValidatingPolicy` and friends for the namespaced equivalents), which express rules in CEL rather than the JMESPath-flavoured YAML you are about to learn. Same job, different syntax. When the exam moves, that is where it will move to — the [migration guide](https://kyverno.io/docs/guides/migration-to-cel/) is the map.
->
-> You will see these warnings throughout every module and every lab in this series. They are noise, not signal. Read them once here and then ignore them.
+You should see something like:
+
+```text
+NAME                 SHORTNAMES   APIVERSION      NAMESPACED   KIND
+cleanuppolicies      cleanpol     kyverno.io/v2   true         CleanupPolicy
+clusterpolicies      cpol         kyverno.io/v1   false        ClusterPolicy
+policies             pol          kyverno.io/v1   true         Policy
+```
+
+The exact list changes between Kyverno versions. `clusterpolicies` shows `NAMESPACED false` and `policies` shows `true`. That one column is the whole scoping story.
+
+### Query the two scopes separately
+
+They are two different object types, not one type with a switch. So they are also two different queries, and a `Policy` never turns up in a `ClusterPolicy` list. List both:
+
+```sh
+kubectl get clusterpolicy
+kubectl get policy --all-namespaces
+```
+
+You should see something like:
+
+```text
+Warning: kyverno.io/v1 ClusterPolicy is deprecated and will be removed in a future release; migrate to ValidatingPolicy, MutatingPolicy, GeneratingPolicy or ImageValidatingPolicy (policies.kyverno.io), see https://kyverno.io/docs/guides/migration-to-cel/
+No resources found
+Warning: kyverno.io/v1 Policy is deprecated and will be removed in a future release; migrate to NamespacedValidatingPolicy and the other namespaced policy types (policies.kyverno.io), see https://kyverno.io/docs/guides/migration-to-cel/
+No resources found
+```
+
+Both lists are empty, because nothing is created for you. A `Policy` in `catalog` would never appear in the first list, and no `match` setting can make it apply to `sandbox`.
+
+The two `Warning:` lines are expected. The API server prints them, not because you made a mistake, and they appear on every `kubectl` command that touches these two kinds. The next section explains them.
+
+## About the deprecation warning
+
+Your playground runs Kyverno v1.19.1. From v1.19 on, the API server prints a deprecation warning whenever you read or write a `kyverno.io/v1` `ClusterPolicy` or `Policy`. "Deprecated" means "still works, but planned to be replaced". Take three things from the warning:
+
+1. **Nothing is broken.** A warning is not an error. The policy is still accepted, stored and enforced by the Kyverno admission controller exactly as this course describes. v1.19 still fully supports these kinds, so everything here works end to end.
+2. **This course stays on `ClusterPolicy` and `Policy` on purpose.** The KCA (Kyverno Certified Associate) exam and its curriculum are written against these kinds, so they are what you will be tested on.
+3. **The replacement is a new family of policies written in CEL** (Common Expression Language, a small expression language used across Kubernetes). They are `ValidatingPolicy`, `MutatingPolicy`, `GeneratingPolicy` and `ImageValidatingPolicy` in the `policies.kyverno.io` group, plus namespaced versions such as `NamespacedValidatingPolicy`. They do the same job with a different syntax.
+
+You will see these warnings in every module and every lab of this course. Read them once here, and then treat them as background noise.
 
 ## Anatomy of `spec.rules`
 
-Every policy — `ClusterPolicy` or `Policy` — declares a list of rules under `spec.rules`. Each entry in that list is independently evaluated, and each one is built from three parts:
+Every policy, cluster-wide or namespaced, has a list of rules under `spec.rules`. Each rule is one page of the rule book. Kyverno checks each rule on its own. Here is a complete policy to read, top to bottom. You do not need to apply it now.
 
 ```yaml
 apiVersion: kyverno.io/v1
@@ -136,57 +132,50 @@ spec:
               team: "?*"
 ```
 
-Reading this top to bottom:
+Each line has a job:
 
-- `match` says which resources this rule is even allowed to consider — here, any `Pod`.
-- The rule's single action block — here, `validate` — is what the rule actually *does* to matching resources.
-- `validationFailureAction: Enforce` (set at the policy level, applying to every rule that doesn't override it) means a resource that fails this rule's `validate` block is rejected outright, not just logged.
-- `background: true` additionally makes Kyverno periodically re-scan resources that already exist against this rule, independent of admission control — you'll use this in Module 2.
+- `match` says which objects this rule may look at: here, any `Pod`. It is the list of ships the inspector looks at.
+- The rule's one action block, here `validate`, is what the rule *does* to matching objects. A `validate` rule stamps a launch request approved or rejected.
+- `validationFailureAction: Enforce` is set at the policy level, so it applies to every rule that does not override it. It means an object that fails the `validate` block is rejected, not just logged.
+- `background: true` also makes Kyverno re-check objects that already exist against this rule, separately from admission. Think of it as patrol inspections of ships that are already flying.
 
 ### Audit reports, Enforce blocks
 
-`validationFailureAction` is the switch that decides what a failing `validate` rule actually costs. `Enforce` rejects the admission request outright — the user sees an error and the resource is never created. `Audit` lets the request through and records the failure instead, as an entry in a `PolicyReport`.
+`validationFailureAction` decides what a failing `validate` rule costs. With `Enforce`, Kyverno rejects the request: the user sees an error, and the object is never created. The launch is blocked. With `Audit`, Kyverno lets the request through and writes the failure down in a `PolicyReport` instead. The launch goes ahead, but it is written in the inspection log.
 
-The practical consequence is that `Audit` is how you find out what a policy *would* break before it breaks anything, which is why a careful rollout starts there. The reporting machinery it writes into exists on the cluster from the moment Kyverno is installed, waiting for something to report.
+So `Audit` is how you find out what a policy *would* break before it breaks anything. That is why a careful rollout starts in `Audit`. The reports a policy writes into exist from the moment Kyverno is installed. Look at them now:
 
-> [!TIP]
-> **Try it — look at the reporting surface**
->
-> ```sh
-> kubectl get policyreport --all-namespaces
-> kubectl get clusterpolicyreport
-> ```
->
-> Expect something like:
->
-> ```text
-> No resources found
-> No resources found
-> ```
->
-> Empty, because no policy exists yet to produce results. Once you apply an `Audit`-mode policy, re-running these two commands is how you read what it found — the violating resources stay in the cluster, and the verdict shows up here instead of as an admission error.
+```sh
+kubectl get policyreport --all-namespaces
+kubectl get clusterpolicyreport
+```
+
+You should see something like:
+
+```text
+No resources found
+No resources found
+```
+
+They are empty because no policy exists yet. A `PolicyReport` is the inspection log for one namespace; a `ClusterPolicyReport` is the log for the whole cluster. Once you apply an `Audit` policy, these two commands are how you read what it found: the failing objects stay in the cluster, and the verdict shows up here instead of as an error.
 
 ## One action per rule
 
-A single rule commits to exactly one of four possible actions:
+A single rule commits to exactly one of four actions:
 
-- **`validate`** — accept or reject a resource based on whether it matches a pattern or fails a set of conditions.
-- **`mutate`** — rewrite a resource before it is persisted (add a label, inject a default, patch a field).
-- **`generate`** — create a brand-new, separate resource in response to a trigger resource being created.
-- **`verifyImages`** — verify container image signatures and attestations (covered in Section 040).
+- **`validate`**: accept or reject an object, based on whether it matches a pattern or fails a set of conditions.
+- **`mutate`**: change an object before it is stored (add a label, set a default, patch a field). This is the ground crew adjusting a ship before launch.
+- **`generate`**: create a new, separate object when a trigger object is created. This is building a standard supply depot on every new planet.
+- **`verifyImages`**: check the signatures on container images. This is checking the shipyard's seal before launch.
 
-You cannot combine two of these in one rule. If you need a resource both mutated and then validated, you write two rules — a `mutate` rule and a `validate` rule — inside the same policy (or across two policies). Kyverno's admission flow runs all mutating rules across all policies before any validating rules, so a mutate rule can supply a missing default that a later validate rule then accepts.
+You cannot combine two of these in one rule. If you need an object both changed and then checked, write two rules, a `mutate` rule and a `validate` rule, in the same policy or in two policies. Kyverno runs all mutate rules from all policies before any validate rules. So a mutate rule can fill in a missing default that a validate rule then accepts.
+
+## Common pitfalls
 
 > [!WARNING]
-> **Common pitfalls**
->
-> - **Combining two action blocks in one rule.** Putting both a `validate:` and a `mutate:` block under the same `- name:` rule entry is not just discouraged — it is invalid against Kyverno's schema, and the policy will fail to apply (or fail Kyverno's own policy validation) with an error naming the conflicting keys. Split into separate rules instead.
-> - **Expecting a `Policy` to reach outside its own namespace.** A `Policy` in `catalog` cannot govern `sandbox`, no matter what its `match.resources.namespaces` says. If a rule needs to span namespaces, it has to be a `ClusterPolicy`.
-> - **Treating `Audit` as "policy disabled".** An `Audit` policy is fully evaluated on every matching admission request; it just records the result rather than rejecting. It is reporting, not an off switch.
+> - **Putting two action blocks in one rule.** A `validate:` and a `mutate:` block under the same `- name:` entry break Kyverno's schema. The policy fails to apply, with an error naming the clashing keys. Split them into two rules.
+> - **Expecting a `Policy` to reach outside its namespace.** A `Policy` in `catalog` cannot govern `sandbox`, whatever its `match.resources.namespaces` says. If a rule must span namespaces, it has to be a `ClusterPolicy`.
+> - **Treating `Audit` as "policy switched off".** An `Audit` policy is fully checked on every matching request. It records the result instead of rejecting. It is reporting, not an off switch.
+> - **Reading the deprecation warning as an error.** The `Warning: kyverno.io/v1 ClusterPolicy is deprecated` line comes from the API server on every command. The command still worked.
 
-> *A Kyverno policy is a Kubernetes object first and a policy second — which is why `kubectl` is the only tool you need to find one, read its schema, and see how far its authority reaches.*
-
-## Reference
-
-- `kubectl explain clusterpolicy.spec` — the live schema for the API version installed on your cluster.
-- Kyverno policy types documentation for the full list of supported CRDs beyond `ClusterPolicy`/`Policy`.
+> *A Kyverno policy is a Kubernetes object first and a policy second, which is why `kubectl` is the only tool you need to find one, read its schema and see how far its authority reaches.*

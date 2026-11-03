@@ -1,156 +1,126 @@
-# Part 2 — Applying & Inspecting with kubectl
+# Applying & Inspecting with kubectl
 
-> Prerequisite: [Part 1 — apiVersion, kind, metadata & spec](./course-01-apiversion-kind-metadata-spec.md). Next: [Landing page](./course.md).
+Astronaut, once a Kyverno policy is just another manifest, every `kubectl` habit you already have works on it unchanged. This part shows which components act on a policy once it exists, how to apply one, and how to confirm it is really active.
 
-Once a Kyverno policy is just another manifest, every day-to-day `kubectl` habit you already have applies to it unchanged. This part covers the specific commands worth knowing for policies, plus the multi-document YAML convention Kyverno policy bundles commonly use.
+## Who enforces the manifest you apply
 
-## Who actually enforces the manifest you apply
+Registering the policy kinds taught the API server what a policy *looks like*. Something still has to act on one. That something is a set of ordinary Deployments in the `kyverno` namespace. So you check Kyverno's own health with exactly the commands you would use for any other workload, and you troubleshoot an unhealthy controller the same way.
 
-Registering the CRDs from Part 1 taught the API server what a policy *looks like*. Something still has to act on one. That something is a set of ordinary Deployments in the `kyverno` namespace — which means Kyverno's own health is inspectable with exactly the commands you would point at any other workload, and an unhealthy controller is diagnosable the same way.
+<!-- astrona:playground:renew -->
 
-> [!TIP]
-> **Try it — see the controllers that back the policy CRDs**
->
-> ```sh
-> kubectl -n kyverno get deployments
-> ```
->
-> Expect something like:
->
-> ```text
-> NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
-> kyverno-admission-controller    1/1     1            1           3m
-> kyverno-background-controller   1/1     1            1           3m
-> kyverno-cleanup-controller      1/1     1            1           3m
-> kyverno-reports-controller      1/1     1            1           3m
-> ```
->
-> Names and ages vary with the release and how long the playground has been up. Each controller owns a different job — the admission controller is the one that answers the API server during a live request, which is why a policy stops being enforced the moment that Deployment is unavailable.
+### See the controllers in your playground
 
-## The blank slate you are starting from
+List the Deployments in the `kyverno` namespace:
 
-Registered CRDs and running controllers still do not mean any rule is active. A freshly installed Kyverno enforces exactly nothing, because no policy objects exist yet. That empty state is worth seeing once — so that later, when a resource is unexpectedly rejected, your first instinct is to ask *which policy did that* rather than to suspect Kyverno in general.
+```sh
+kubectl -n kyverno get deployments
+```
 
-> [!TIP]
-> **Try it — confirm nothing is enforced yet**
->
-> ```sh
-> kubectl get clusterpolicy
-> kubectl get policy --all-namespaces
-> ```
->
-> Expect something like:
->
-> ```text
-> No resources found
-> No resources found
-> ```
->
-> Both kinds are queryable — that is the CRDs being registered — but the cluster holds no rules, so every request is admitted. This is your baseline before you apply anything below.
+You should see something like:
+
+```text
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
+kyverno-admission-controller    1/1     1            1           3m
+kyverno-background-controller   1/1     1            1           3m
+kyverno-cleanup-controller      1/1     1            1           3m
+kyverno-reports-controller      1/1     1            1           3m
+```
+
+Names and ages change with the release and with how long the playground has been up. Each controller has a different job. The admission controller is the inspector at the launch gate: it answers the API server during a live request. That is why a policy stops being enforced the moment that Deployment is unavailable.
+
+## The blank slate you start from
+
+Registered kinds and running controllers still do not mean any rule is active. A freshly installed Kyverno enforces nothing, because no policy objects exist yet. See that empty state once. Later, when an object is unexpectedly rejected, your first question will be *which policy did that*, not whether Kyverno is broken.
+
+### Confirm nothing is enforced yet
+
+List both policy kinds:
+
+```sh
+kubectl get clusterpolicy
+kubectl get policy --all-namespaces
+```
+
+You should see something like:
+
+```text
+No resources found
+No resources found
+```
+
+Both kinds can be queried, because they are registered, but the cluster holds no rules, so every request is admitted. This is your starting point. (On Kyverno v1.19 each of these commands also prints a `Warning: kyverno.io/v1 ... is deprecated` line from the API server. It is expected and not an error; the course teaches these kinds because the exam does.)
 
 ## Applying a policy
+
+The commands below need the file `require-team-label.yaml` in your current folder. It holds the `require-team-label` `ClusterPolicy`: an `Enforce` policy whose rule `check-team-label` requires a non-empty `team` label on every Pod, with the message `A 'team' label is required on every Pod.`
+
+Applying it works exactly like applying a Deployment:
 
 ```sh
 kubectl apply -f require-team-label.yaml
 ```
 
-behaves exactly like applying a Deployment: the object is created or updated, and `kubectl` prints `clusterpolicy.kyverno.io/require-team-label created`. Nothing is "compiled" or "loaded into an engine" as a separate step — the moment the object exists in etcd, Kyverno's admission controller (which watches `ClusterPolicy`/`Policy` objects via the standard Kubernetes watch mechanism) picks it up and starts enforcing it, typically within a second or two.
+The object is created or updated, and `kubectl` prints `clusterpolicy.kyverno.io/require-team-label created`. Nothing is compiled or loaded into an engine as a separate step. The Kyverno admission controller watches `ClusterPolicy` and `Policy` objects with the normal Kubernetes watch mechanism. The moment the object is stored in etcd, the controller picks it up and starts enforcing it, usually within a second or two.
 
-## Confirming a policy is actually active
+## Confirming a policy is active
 
-Creating the object is not the same as confirming Kyverno accepted and is enforcing it. Two commands close that gap:
+Creating the object is not the same as Kyverno accepting it and enforcing it. Three commands close that gap. `kubectl get` and `kubectl describe` show the policy and its status:
 
 ```sh
 kubectl get clusterpolicy
 kubectl describe clusterpolicy require-team-label
 ```
 
-`kubectl describe` prints the policy's `Status` section, including a `ready: true` condition (Kyverno finished validating the policy's own rules are well-formed) and, once background scanning has run at least once, summary counts of passing/failing resources it has found. A policy stuck at `ready: false` almost always means a rule references a `kind` the cluster's API server does not recognise (a typo, or a CRD that is not installed), and `kubectl describe` prints the exact error.
+`kubectl describe` prints the policy's `Status` section. It includes a ready condition, which means Kyverno has checked that the policy's own rules are well formed. Once background scanning has run, it also shows counts of passing and failing objects. A policy stuck at not ready almost always has a rule that names a `kind` the API server does not know (a typo, or a CRD that is not installed), and `kubectl describe` prints the exact error.
+
+Kubernetes events show rejections at admission:
 
 ```sh
 kubectl get events --field-selector reason=PolicyViolation -A
 ```
 
-surfaces admission-time rejections as Kubernetes Events, which is often the fastest way to see *why* a `kubectl apply` on some unrelated resource just failed — without having to go find and read a `PolicyReport` object.
+This is often the fastest way to see *why* a `kubectl apply` on some unrelated object just failed, without finding and reading a `PolicyReport`.
 
-> [!TIP]
-> **Try it — apply, confirm ready, then trigger and read a rejection**
->
-> ```sh
-> kubectl apply -f require-team-label.yaml
-> kubectl describe clusterpolicy require-team-label | grep -A3 Status
-> kubectl run no-label --image=nginx --restart=Never
-> ```
->
-> Expect something like:
->
-> ```text
-> clusterpolicy.kyverno.io/require-team-label created
->
-> Status:
->   Conditions:
->     Message:  Ready
->     Reason:   Succeeded
->     Status:   True
->     Type:     Ready
->
-> Error from server: admission webhook "validate.kyverno.svc-fail" denied the request:
->
-> resource Pod/default/no-label was blocked due to the following policies
->
-> require-team-label:
->   check-team-label: 'validation error: A ''team'' label is required on every Pod. rule check-team-label failed at path /metadata/labels/team/'
-> ```
->
-> The rejection message is exactly the `validate.message` string you wrote in the policy — this is the mechanism, covered fully in Module 2, for making a blocked request tell the requester precisely what to fix.
+### Apply, confirm ready, then read a rejection
 
-## Testing a resource without creating it
+Put the three steps together: apply the policy, check its status, and try to launch a Pod with no `team` label:
 
 ```sh
-kubectl apply --dry-run=server -f pod.yaml
+kubectl apply -f require-team-label.yaml
+kubectl describe clusterpolicy require-team-label | grep -A3 Status
+kubectl run no-label --image=nginx --restart=Never
 ```
 
-sends the manifest all the way to the API server — through authentication, authorization, and every admission webhook including Kyverno — but stops just short of persisting it to etcd. This is the single most useful command for iterating on a policy: you get a real admission decision, with the real rejection message, without leaving behind a Pod you have to clean up. (`--dry-run=client` is *not* sufficient here — it never leaves your machine, so it never reaches Kyverno's webhook at all.)
+You should see something like:
 
-## Multi-document YAML and the offline `kyverno` CLI
+```text
+clusterpolicy.kyverno.io/require-team-label created
 
-A single file can hold several policies (or a policy plus a supporting ConfigMap) separated by a `---` line on its own:
+Status:
+  Conditions:
+    Message:  Ready
+    Reason:   Succeeded
+    Status:   True
+    Type:     Ready
 
-```yaml
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: require-team-label
-spec:
-  # ...
----
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: disallow-latest-tag
-spec:
-  # ...
+Error from server: admission webhook "validate.kyverno.svc-fail" denied the request:
+
+resource Pod/default/no-label was blocked due to the following policies
+
+require-team-label:
+  check-team-label: 'validation error: A ''team'' label is required on every Pod. rule check-team-label failed at path /metadata/labels/team/'
 ```
 
-`kubectl apply -f bundle.yaml` applies every document in the file in order, which is how most published Kyverno policy packs (including the official [kyverno/policies](https://github.com/kyverno/policies) repository) ship more than one rule per file.
+The rejection message is exactly the `validate.message` text in the policy. That is how a blocked request tells the person who sent it precisely what to fix. If you applied the policy before, the first line says `unchanged` instead of `created`.
 
-For iterating on a rule before it ever touches a real cluster, the standalone `kyverno` CLI evaluates a policy against a local resource file entirely offline:
+This policy matches every Pod in the cluster, including system Pods. When you have finished experimenting, remove it with `kubectl delete clusterpolicy require-team-label`.
 
-```sh
-kyverno apply require-team-label.yaml --resource pod.yaml
-```
-
-This is faster feedback than `kubectl apply --dry-run=server` for pure syntax/logic iteration, since it needs no cluster and no webhook round-trip at all — but it does not exercise the real admission-webhook path, so a final check with `--dry-run=server` against the actual cluster is still worth doing before you trust a policy in `Enforce`.
+## Common pitfalls
 
 > [!WARNING]
-> **Common pitfalls**
->
-> - **Forgetting the `---` separator.** Concatenating two policy documents into one file without a `---` line between them does not create two policies — YAML parses the whole file as one malformed document, and `kubectl apply` fails with a parse error that points at a line number, not at "you forgot a separator". If `kubectl apply -f bundle.yaml` errors immediately with a YAML parsing complaint (rather than an admission rejection), check for a missing `---` first.
-> - **Reaching for `--dry-run=client` to test a policy.** Client-side dry-run never contacts the API server, so no admission webhook is called and Kyverno never sees the resource. It will happily report success for a manifest that a live `kubectl apply` would reject. Use `--dry-run=server` when the question is "would this be admitted".
+> - **Treating "created" as "enforced".** `kubectl apply` only stores the object. Check the ready condition with `kubectl describe` before you trust the policy.
+> - **Suspecting Kyverno when a policy is not ready.** A policy that never becomes ready usually names a kind the cluster does not know. Read the error in `kubectl describe`.
+> - **Forgetting the admission controller is a normal Deployment.** If `kyverno-admission-controller` is not ready, no policy is enforced. Check it with `kubectl -n kyverno get deployments`.
+> - **Leaving a broad `Enforce` policy behind.** A test policy that matches every Pod keeps blocking Pods, including system ones. Delete it when you are done.
 
-*`kubectl apply` puts the policy in etcd exactly like any manifest; `describe` and `get events` are how you confirm what happened next; `--dry-run=server` is the safe way to test a resource against it.*
-
-## Reference
-
-- `kubectl explain clusterpolicy.status` — the live schema for the status fields this part reads.
-- [Kyverno CLI docs](https://kyverno.io/docs/kyverno-cli/) — the full `kyverno apply` / `kyverno test` command reference.
+> *`kubectl apply` puts the policy in etcd exactly like any manifest, and `describe` and `get events` are how you confirm what happened next.*

@@ -1,6 +1,4 @@
-# Part 1 — verifyImages Rule Anatomy & Attestors
-
-> Prerequisite: [Landing page](./course.md). Next: [Part 2 — mutateDigest & Required Attestations](./course-02-mutatedigest-and-required-attestations.md).
+# verifyImages Rule Anatomy & Attestors
 
 ## The fourth rule action
 
@@ -116,6 +114,24 @@ Once the policy is applied, the decision moves out of your terminal and into the
 >
 > The Pod was never persisted, so there is nothing to clean up. Note that the rejection reason is the same `no matching signatures` that `cosign verify` reported by hand earlier — the engine is identical, only the moment of asking has moved. To take the guard back off, `kubectl delete clusterpolicy require-signed-edge-images`.
 
+## See it in your playground
+
+<!-- astrona:playground:renew -->
+
+The playground has a registry with two images. One is signed and one is not. Check the signed one by hand, with the public key that is left in `/tmp/cosign.pub`:
+
+```sh
+cosign verify --key /tmp/cosign.pub --allow-insecure-registry registry.registry-system.svc.cluster.local:5000/edge-api:1.4.0
+```
+
+The check succeeds. Now run it on the unsigned image:
+
+```sh
+cosign verify --key /tmp/cosign.pub --allow-insecure-registry registry.registry-system.svc.cluster.local:5000/edge-api:1.4.0-untrusted
+```
+
+The command fails with a message that no signature was found. This is the same judgement Kyverno makes inside a `verifyImages` rule. The rule only automates it at admission time, with the same key.
+
 > [!WARNING]
 > **Common pitfalls**
 >
@@ -125,8 +141,3 @@ Once the policy is applied, the decision moves out of your terminal and into the
 > - **Treating "signed" as "trustworthy".** A signature proves a key vouched for a digest. If that key is unmanaged — shared, long-lived, or sitting in a developer's home directory — the signature proves very little. Key custody is part of the control, not a detail beneath it.
 
 > *A `verifyImages` rule doesn't inspect the Pod spec — it reaches out to the registry and asks the registry to prove who signed what it's about to serve.*
-
-## Reference
-
-- [Kyverno documentation — Verify Images](https://kyverno.io/docs/writing-policies/verify-images/) — the full `verifyImages` schema this part summarizes.
-- `cosign public-key --key cosign.key` — prints the PEM public key from a keyed keypair, in the exact format `attestors[].entries[].keys.publicKeys` expects.

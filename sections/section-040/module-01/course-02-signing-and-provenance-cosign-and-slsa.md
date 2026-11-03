@@ -1,6 +1,4 @@
-# Part 2 — Signing & Provenance: Cosign and SLSA
-
-> Prerequisite: [Part 1 — OCI Manifests, Digests vs. Tags](./course-01-oci-manifests-digests-vs-tags.md). Next: [Module 2 — Verifying Images with Kyverno verifyImages](../module-02/course.md).
+# Signing & Provenance: Cosign and SLSA
 
 A digest tells you that the bytes you are about to run are *exactly* the bytes someone pushed. It tells you nothing about *who* pushed them or *how* they were produced. Signing answers the first question; attestations answer the second.
 
@@ -25,7 +23,7 @@ Either way, what a valid signature proves is narrow and specific: **this exact d
 
 Note the shape of that claim. It proves *identity*, not *quality*: a signature says "this key signed this digest", not "this image is free of vulnerabilities" and not "this image came out of the approved build pipeline". Somebody with access to the signing key can sign an image built on their laptop, and it verifies perfectly.
 
-What a signature covers is worth being precise about, because it is broader than it first appears. Cosign signs the *manifest* digest — and because the manifest lists the config blob and every layer blob by their own digests (Part 1), signing that one value transitively commits to the entire object graph. Change a single byte in any layer and that layer's digest changes, which changes the manifest, which changes the manifest digest, which invalidates the signature.
+What a signature covers is worth being precise about, because it is broader than it first appears. Cosign signs the *manifest* digest — and because the manifest lists the config blob and every layer blob by their own digests, signing that one value transitively commits to the entire object graph. Change a single byte in any layer and that layer's digest changes, which changes the manifest, which changes the manifest digest, which invalidates the signature.
 
 > [!TIP]
 > **Try it — the config blob a signature transitively covers**
@@ -50,13 +48,13 @@ What a signature covers is worth being precise about, because it is broader than
 >
 > This is a separate object from the manifest, fetched by its own digest. Nobody signs it directly — yet it cannot be swapped without breaking the manifest's signature, because the manifest names it by content hash. Field values and ordering will differ from what is printed here.
 
-This playground has `crane` but no signing stack, so there is no signature here to inspect — `nginx:1.25-alpine` is a public image nobody signed with a key you hold. Module 2's playground adds `cosign`, a local registry, and a signed image, and that is where signing and verification become hands-on.
+This playground has `crane` but no signing stack, so there is no signature here to inspect — `nginx:1.25-alpine` is a public image nobody signed with a key you hold.
 
 ## Attestations: proving what happened, not just who signed
 
 An **attestation** is a signed statement about an image that goes beyond "I vouch for this" — it's a structured, signed predicate describing a fact about how the image came to exist. Common predicate types follow the **in-toto** attestation format, and the **SLSA** (Supply-chain Levels for Software Artifacts) framework standardizes what a trustworthy build-provenance predicate should contain: which source repository and commit produced the image, which build system ran, and whether the build process was isolated from tampering.
 
-In practice an attestation lets you ask sharper questions than a bare signature can answer: not just "did our release pipeline sign this," but "did this image pass its vulnerability scan," "was it built from `main` at this exact commit," or "did it go through the approved CI pipeline at all, as opposed to someone's laptop." Kyverno's `verifyImages` rule type (Module 2) can require and evaluate these predicates directly, using JMESPath conditions against the attestation payload — turning "who signed this" into "what process was this image required to go through before it could run."
+In practice an attestation lets you ask sharper questions than a bare signature can answer: not just "did our release pipeline sign this," but "did this image pass its vulnerability scan," "was it built from `main` at this exact commit," or "did it go through the approved CI pipeline at all, as opposed to someone's laptop." Kyverno's `verifyImages` rule type can require and evaluate these predicates directly, using JMESPath conditions against the attestation payload — turning "who signed this" into "what process was this image required to go through before it could run."
 
 > [!WARNING]
 > **Common pitfalls**
@@ -65,9 +63,3 @@ In practice an attestation lets you ask sharper questions than a bare signature 
 > - **Losing the private signing key.** With keyed signing there is no recovery path for a lost private key other than re-signing every image with a newly generated pair and redistributing the new public key to every verifier — plan key custody accordingly.
 
 > *A signature proves who vouched for these exact bytes; an attestation proves what process those bytes were required to survive before being signed.*
-
-## Reference
-
-- [Sigstore / Cosign documentation](https://docs.sigstore.dev/) — keyed and keyless signing flows referenced above.
-- [in-toto attestation framework](https://in-toto.io/) — the attestation predicate format Kyverno evaluates.
-- [SLSA framework](https://slsa.dev/) — the build-provenance levels referenced above.

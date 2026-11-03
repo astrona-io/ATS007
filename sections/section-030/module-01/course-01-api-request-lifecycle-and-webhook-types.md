@@ -1,6 +1,4 @@
-# Part 1 — The API Request Lifecycle & Webhook Types
-
-> Prerequisite: [Landing page](./course.md). Next: [Part 2 — Mutating vs Validating Webhooks](./course-02-mutating-vs-validating-webhooks.md).
+# The API Request Lifecycle & Webhook Types
 
 When you run `kubectl apply -f deployment.yaml`, it feels instantaneous and singular — one call, one result. Underneath, the API server runs that request through a strict, ordered pipeline before anything is written to etcd. Every stage in that pipeline can reject the request outright, and two of the stages can also rewrite the object in flight.
 
@@ -102,6 +100,24 @@ sequenceDiagram
     apiserver->>apiserver: Persist to etcd (if allowed)
 ```
 
+## See it in your playground
+
+<!-- astrona:playground:renew -->
+
+List every webhook configuration on the cluster. The playground has Kyverno installed and no policies:
+
+```sh
+kubectl get validatingwebhookconfigurations,mutatingwebhookconfigurations
+```
+
+You see Kyverno's registrations. They are ordinary objects, so you can read them like any other. Now look for the built-in plugins that are compiled into the API server:
+
+```sh
+kubectl -n kube-system get pod -l component=kube-apiserver -o yaml | grep enable-admission-plugins
+```
+
+The flag lists the built-in controllers. They are fixed when the API server starts. Kyverno's webhooks are dynamic: you can add and remove them while the cluster runs.
+
 > [!WARNING]
 > **Common pitfalls**
 >
@@ -109,8 +125,3 @@ sequenceDiagram
 > - **Debugging the validate rule when the mutate rule is at fault.** Because a validating webhook is called *after* schema validation and *after* every mutating webhook has run, a Kyverno `validate` rule that checks for a field your `mutate` rule is supposed to inject only works if that mutate rule ran without error. If the mutate rule silently fails to apply (a typo in the JSON path, for instance), the validate rule downstream sees the original, unmutated object and rejects it — the first visible symptom of a broken mutate rule is often a confusing validate failure.
 
 > *The pipeline's order is the whole contract: mutation finishes, then the schema is checked, then validation gets a final yes-or-no on an object nobody may touch again.*
-
-## Reference
-
-- `kubectl explain mutatingwebhookconfiguration.webhooks` / `kubectl explain validatingwebhookconfiguration.webhooks` — the full field list this part only summarizes.
-- Kubernetes documentation: "Dynamic Admission Control" — the canonical description of the `AdmissionReview` request/response contract.

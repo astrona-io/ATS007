@@ -1,10 +1,8 @@
-# Part 2 — mutateDigest & Required Attestations
-
-> Prerequisite: [Part 1 — verifyImages Rule Anatomy & Attestors](./course-01-verifyimages-rule-anatomy-and-attestors.md). Next: [Section 040 Capstone](../capstone/labs/lab-01/question.md).
+# mutateDigest & Required Attestations
 
 ## Closing the tag-mutation gap with mutateDigest
 
-Module 1 established the core supply-chain problem: a tag can be repointed after you approved it, so admitting a Pod because its *tag* had a valid signature at admission time does not guarantee the *bytes the kubelet later pulls* are the same ones that were checked. A `verifyImages` rule closes this gap with one field:
+The core supply-chain problem is this: a tag can be repointed after you approved it, so admitting a Pod because its *tag* had a valid signature at admission time does not guarantee the *bytes the kubelet later pulls* are the same ones that were checked. A `verifyImages` rule closes this gap with one field:
 
 ```yaml
       verifyImages:
@@ -41,7 +39,7 @@ With `mutateDigest: true`, once Kyverno verifies the signature against the diges
 >
 > You submitted a tag reference; the object Kubernetes actually stored already carries the digest. This is the mutation happening at admission time, not after the fact.
 
-It is worth confirming that the digest Kyverno wrote is not some value it invented, but exactly what the registry serves for that tag right now. This is the same `crane digest` question from Module 1, asked of the same tag the policy just processed — the two answers should be identical.
+It is worth confirming that the digest Kyverno wrote is not some value it invented, but exactly what the registry serves for that tag right now. This is the `crane digest` question, asked of the same tag the policy just processed — the two answers should be identical.
 
 > [!TIP]
 > **Try it — confirm the rewritten digest is the one the registry actually serves**
@@ -64,7 +62,7 @@ It is worth confirming that the digest Kyverno wrote is not some value it invent
 
 ## Requiring more than a signature: attestations
 
-A bare signature (Part 1) proves identity: *this key vouched for this digest*. An `attestations` block goes further, requiring a signed in-toto/SLSA-style predicate to also be present and to satisfy conditions you write:
+A bare signature proves identity: *this key vouched for this digest*. An `attestations` block goes further, requiring a signed in-toto/SLSA-style predicate to also be present and to satisfy conditions you write:
 
 ```yaml
       verifyImages:
@@ -74,7 +72,7 @@ A bare signature (Part 1) proves identity: *this key vouched for this digest*. A
             - count: 1
               entries:
                 - keys:
-                    publicKeys: "{{ /* same public key as Part 1 */ }}"
+                    publicKeys: "{{ /* same public key as the signature check */ }}"
           attestations:
             - predicateType: https://slsa.dev/provenance/v1
               conditions:
@@ -86,6 +84,87 @@ A bare signature (Part 1) proves identity: *this key vouched for this digest*. A
 
 Here the rule requires not just *a* valid signature, but a signed provenance predicate whose `builder.id` field matches your approved CI system exactly. An image signed by the right key but built on someone's laptop — never having gone through the approved pipeline — has a valid signature and still fails this rule, because the required attestation predicate is either missing or doesn't satisfy the condition. This is the mechanism that turns "who signed it" into "what process was it required to survive."
 
+## See it in your playground
+
+<!-- astrona:playground:renew -->
+
+Save this as `clusterpolicy-require-signed-edge-images.yaml`. Replace `<PUBLIC_KEY>` with the text printed by `cat /tmp/cosign.pub`, keeping the same indentation on each line:
+
+```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-signed-edge-images
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: check-edge-api-signature
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - edge
+      verifyImages:
+        - imageReferences:
+            - "registry.registry-system.svc.cluster.local:5000/edge-api:*"
+          required: true
+          mutateDigest: true
+          attestors:
+            - count: 1
+              entries:
+                - keys:
+                    publicKeys: |-
+                      <PUBLIC_KEY>
+```
+
+Apply it:
+
+```sh
+kubectl apply -f clusterpolicy-require-signed-edge-images.yaml
+```
+
+Then try the unsigned image. It is rejected:
+
+```sh
+kubectl -n edge run untrusted-check --image=registry.registry-system.svc.cluster.local:5000/edge-api:1.4.0-untrusted --restart=Never
+```
+
+Now run the signed image, and read the image field that the cluster stored:
+
+```sh
+kubectl -n edge run signed-check --image=registry.registry-system.svc.cluster.local:5000/edge-api:1.4.0 --restart=Never
+kubectl -n edge get pod signed-check -o jsonpath='{.spec.containers[0].image}{"\n"}'
+```
+
+The stored image now ends in `@sha256:` and a digest, because `mutateDigest` rewrote the tag after the signature check passed.
+
+## Your mission: Cosign Image Verification Lab
+
+You can now do the skill this part teaches on a live cluster. The mission asks you to do it again on a fresh one.
+
+First pause the playground:
+
+```sh
+astrona stop section-040-module-02-playground
+```
+
+Then run the mission and submit your work:
+
+```sh
+astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-040/module-02/labs/lab-01
+astrona submit
+```
+
+When you are done, remove the mission and start the playground again:
+
+```sh
+astrona destroy ats-007-lab-012
+astrona start section-040-module-02-playground
+```
+
 > [!WARNING]
 > **Common pitfalls**
 >
@@ -93,9 +172,3 @@ Here the rule requires not just *a* valid signature, but a signed provenance pre
 > - **Enforcing cluster-wide before staging in Audit.** Because verification happens on the live registry at every matching Pod's admission, a misconfigured attestor (wrong key, unreachable registry) with `validationFailureAction: Enforce` blocks *every* matching deployment cluster-wide the moment it's applied. Prove the policy correct with `validationFailureAction: Audit` and review the resulting `PolicyReport` entries first.
 
 > *`mutateDigest` proves the Pod that runs is the Pod that was checked; an `attestations` requirement proves the image that was checked came from a process you actually trust.*
-
-## Reference
-
-- [Kyverno documentation — Verify Images: mutateDigest](https://kyverno.io/docs/writing-policies/verify-images/) — the digest-rewrite behavior this part demonstrates.
-- [Kyverno documentation — Verify Images: Attestations](https://kyverno.io/docs/writing-policies/verify-images/#attestations) — the full `attestations`/`conditions` schema.
-- [SLSA Provenance predicate](https://slsa.dev/provenance/v1) — the predicate type referenced in the example above.

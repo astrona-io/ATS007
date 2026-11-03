@@ -1,0 +1,565 @@
+# Final domain knowledge check across all four sections.
+schema_version: 1
+kind: question_bank
+id: ats007-final
+course_id: ATS007
+exam_code: KCA
+status: draft
+provenance: Original practice material written for this course; not official exam questions.
+scope:
+  type: domain
+  id: fundamentals-of-kyverno
+  title: "Fundamentals of Kyverno"
+questions:
+  - id: ats007-final-q01
+    type: single_choice
+    difficulty: beginner
+    learning_objective: Choose between ClusterPolicy and Policy for one namespace
+    source_readings:
+    - sections/section-010/module-01/course-01-clusterpolicy-vs-policy-and-rule-anatomy.md
+    prompt: You need a policy that only ever applies inside the `billing` namespace and should never affect resources in any other namespace, even by accident. Which policy kind should you author, and why?
+    options:
+    - id: a
+      text: "`ClusterPolicy`, because it is the only kind Kyverno actually enforces."
+      explanation: Kyverno enforces both kinds identically; `ClusterPolicy` is not somehow more "real".
+    - id: b
+      text: "`Policy`, because it is namespace-scoped and only ever evaluates resources inside the namespace it lives in."
+      explanation: Correct. `Policy` is the namespace-scoped Kyverno CRD — it lives inside a namespace and Kyverno restricts its evaluation to resources in that same namespace, with no chance of leaking scope. `ClusterPolicy` is cluster-scoped and needs an explicit `resources.namespaces` filter to achieve the same restriction, which is one more thing that can be misconfigured or accidentally widened later.
+    - id: c
+      text: "`ClusterPolicy` with `resources.namespaces: [billing]` in every rule, because `Policy` cannot use a `match` block."
+      explanation: Both kinds support the full `match`/`exclude` block; the difference is scope, not features.
+    - id: d
+      text: Either kind works identically; the CRD name is cosmetic.
+      explanation: The scope difference has real operational consequences, not just naming.
+    correct_option: b
+    explanation: "`Policy` is the namespace-scoped Kyverno CRD — it lives inside a namespace and Kyverno restricts its evaluation to resources in that same namespace, with no chance of leaking scope. `ClusterPolicy` is cluster-scoped and needs an explicit `resources.namespaces` filter to achieve the same restriction, which is one more thing that can be misconfigured or accidentally widened later."
+
+  - id: ats007-final-q02
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Use match and exclude to exempt a subject
+    source_readings:
+    - sections/section-010/module-01/course-02-match-exclude-and-resource-selection.md
+    prompt: 'A rule''s `match` block selects `kinds: [Pod]` in `namespaces: [production]`. You also add an `exclude` block with `subjects: [{kind: ServiceAccount, name: ci-deployer, namespace: production}]`. What is the net effect?'
+    options:
+    - id: a
+      text: The rule now applies to Pods created by anyone except the `ci-deployer` ServiceAccount.
+      explanation: Correct. `match` defines the set a rule applies to; `exclude` carves a subset back out of that set. Matching `subjects` lets you exempt a specific identity (here, a CI service account) from an otherwise-applicable rule — a common pattern for letting automation bypass a human-facing guardrail.
+    - id: b
+      text: The rule stops applying entirely, because `exclude` always overrides `match`.
+      explanation: "`exclude` narrows scope, it does not disable the rule."
+    - id: c
+      text: The rule only applies to Pods created by `ci-deployer`.
+      explanation: Inverts the logic of `exclude`.
+    - id: d
+      text: "`subjects` is not a valid `exclude` field, so the exclude block is silently ignored."
+      explanation: "`subjects` is a documented, valid field in both `match` and `exclude`."
+    correct_option: a
+    explanation: "`match` defines the set a rule applies to; `exclude` carves a subset back out of that set. Matching `subjects` lets you exempt a specific identity (here, a CI service account) from an otherwise-applicable rule — a common pattern for letting automation bypass a human-facing guardrail."
+
+  - id: ats007-final-q03
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Use foreach over a list of variable length
+    source_readings:
+    - sections/section-010/module-02/course-02-foreach-and-background-scans.md
+    prompt: You write a `validate.pattern` block asserting every container's `resources.limits.memory` must be set, but your resource has a variable-length `containers` array and the pattern only ever checks the first container. What should you use instead?
+    options:
+    - id: a
+      text: A `deny` block with no conditions, since `deny` always checks every array element.
+      explanation: A bare `deny` block does not automatically iterate arrays either; it still needs `foreach` or an array-aware condition to touch every element.
+    - id: b
+      text: "`foreach`, iterating over `request.object.spec.containers` and applying the pattern per item."
+      explanation: Correct. A plain `pattern` block matches the shape of the resource once; it does not natively loop over a variable-length list. `foreach` explicitly iterates a JMESPath-selected list (here, the containers array) and re-applies a pattern or deny check to every element, which is exactly the "every container must..." shape.
+    - id: c
+      text: Duplicate the rule once per expected container index.
+      explanation: Is brittle and breaks the moment container count changes — exactly what `foreach` avoids.
+    - id: d
+      text: 'Set `background: true`, which automatically expands pattern checks across arrays.'
+      explanation: "`background` only controls whether existing resources are periodically re-scanned; it does not change how a pattern evaluates arrays."
+    correct_option: b
+    explanation: A plain `pattern` block matches the shape of the resource once; it does not natively loop over a variable-length list. `foreach` explicitly iterates a JMESPath-selected list (here, the containers array) and re-applies a pattern or deny check to every element, which is exactly the "every container must..." shape.
+
+  - id: ats007-final-q04
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Read Audit results from a background scan
+    source_readings:
+    - sections/section-010/module-02/course-02-foreach-and-background-scans.md
+    prompt: 'A cluster has 40 Deployments that predate a brand-new Kyverno policy set to `validationFailureAction: Audit` and `background: true`. None of the 40 Deployments comply. What happens to them?'
+    options:
+    - id: a
+      text: They are immediately deleted by Kyverno's background controller.
+      explanation: Kyverno's `validate` action never deletes resources.
+    - id: b
+      text: Nothing changes for them at admission time, but Kyverno's background scan records their non-compliance as `PolicyReport` entries you can review.
+      explanation: 'Correct. `Audit` mode never blocks or mutates a resource — it only records results. `background: true` tells Kyverno to periodically re-evaluate resources that already existed before the policy was created (not just new admissions), and those results land in `PolicyReport`/`ClusterPolicyReport` objects for review, which is the standard way to gauge blast radius before flipping to `Enforce`.'
+    - id: c
+      text: They are automatically patched to become compliant.
+      explanation: Describes `mutate`, not `validate`, and even mutate rules only apply going forward on new admission requests unless a separate mutate-existing mechanism is explicitly configured.
+    - id: d
+      text: The policy silently fails to install because pre-existing violations block activation.
+      explanation: Policies install regardless of the current compliance state of existing resources.
+    correct_option: b
+    explanation: "`Audit` mode never blocks or mutates a resource — it only records results. `background: true` tells Kyverno to periodically re-evaluate resources that already existed before the policy was created (not just new admissions), and those results land in `PolicyReport`/`ClusterPolicyReport` objects for review, which is the standard way to gauge blast radius before flipping to `Enforce`."
+
+  - id: ats007-final-q05
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Write a mutate rule with patchStrategicMerge
+    source_readings:
+    - sections/section-010/module-03/course-01-mutate-patchstrategicmerge-and-json6902.md
+    prompt: 'You need every Pod in namespace `catalog` to automatically receive the label `managed-by: kyverno` at creation time, without the developer having to add it themselves. Which rule action and mechanism fits?'
+    options:
+    - id: a
+      text: "`validate` with a `pattern` requiring the label — this both checks and adds it."
+      explanation: "`validate` can only pass or fail a request; it cannot rewrite the resource, so an unlabeled Pod would simply be rejected (or reported, in Audit), not fixed."
+    - id: b
+      text: "`mutate` with `patchStrategicMerge` adding the label into `metadata.labels`."
+      explanation: Correct. `mutate` is the rule action that rewrites the resource being admitted; `patchStrategicMerge` is the overlay-style patch format best suited to adding or defaulting a scalar field like a label. It runs before the object is persisted, so the Pod arrives already labeled.
+    - id: c
+      text: "`generate` with `clone`, copying the label from an existing Pod."
+      explanation: "`generate` creates separate new resources triggered by another resource's lifecycle; it does not modify the triggering resource itself."
+    - id: d
+      text: "`verifyImages`, since label injection is part of image verification."
+      explanation: Is unrelated — `verifyImages` only verifies image signatures/attestations.
+    correct_option: b
+    explanation: "`mutate` is the rule action that rewrites the resource being admitted; `patchStrategicMerge` is the overlay-style patch format best suited to adding or defaulting a scalar field like a label. It runs before the object is persisted, so the Pod arrives already labeled."
+
+  - id: ats007-final-q06
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Write a generate rule with synchronize
+    source_readings:
+    - sections/section-010/module-03/course-02-generate-clone-and-synchronize.md
+    prompt: 'A `generate` rule creates a default-deny `NetworkPolicy` in every new namespace, with `synchronize: true`. A cluster-admin manually edits the generated `NetworkPolicy` to open up port 443. What happens next?'
+    options:
+    - id: a
+      text: The edit persists — `synchronize` only applies at creation time.
+      explanation: 'Describes `synchronize: false` behavior, not `true`.'
+    - id: b
+      text: 'Kyverno reverts the manual edit, because `synchronize: true` keeps the generated resource continuously matching the source/policy definition.'
+      explanation: 'Correct. `synchronize: true` means Kyverno actively keeps the generated resource in sync with its source/policy definition — any drift, including a well-intentioned manual edit, is reverted back to what the policy specifies. This is the tradeoff for guaranteed consistency; `synchronize: false` would instead generate once and leave the resource alone afterward.'
+    - id: c
+      text: The `NetworkPolicy` is deleted entirely, since manual edits are treated as a policy violation.
+      explanation: Sync reverts drift, it does not delete the resource.
+    - id: d
+      text: The policy stops generating resources in any new namespace going forward.
+      explanation: Generation for new namespaces is unaffected by edits to already-generated copies.
+    correct_option: b
+    explanation: "`synchronize: true` means Kyverno actively keeps the generated resource in sync with its source/policy definition — any drift, including a well-intentioned manual edit, is reverted back to what the policy specifies. This is the tradeoff for guaranteed consistency; `synchronize: false` would instead generate once and leave the resource alone afterward."
+
+  - id: ats007-final-q07
+    type: single_choice
+    difficulty: beginner
+    learning_objective: Read the anatomy of a policy manifest
+    source_readings:
+    - sections/section-020/module-01/course-01-apiversion-kind-metadata-spec.md
+    prompt: Which four top-level YAML keys does every `ClusterPolicy` or `Policy` manifest share with any other Kubernetes object, and which one of those four holds the actual rule logic?
+    options:
+    - id: a
+      text: "`metadata`, `data`, `binaryData`, `immutable` — with `data` holding the rules."
+      explanation: This option is not correct.
+    - id: b
+      text: "`apiVersion`, `kind`, `metadata`, `spec` — with `spec` holding the rules."
+      explanation: 'Correct. A Kyverno policy is a normal Kubernetes object: `apiVersion: kyverno.io/v1`, `kind: ClusterPolicy`/`Policy`, `metadata` (name, and namespace for `Policy`), and `spec`, which contains `rules`, `validationFailureAction`, `background`, and everything else that defines behavior. This is exactly why `kubectl` treats a policy like any other resource for `get`/`describe`/`apply`.'
+    - id: c
+      text: "`apiVersion`, `type`, `stringData`, `spec` — with `type` holding the rules."
+      explanation: This option is not correct.
+    - id: d
+      text: "`kind`, `rules`, `metadata`, `status` — with `rules` at the top level, outside `spec`."
+      explanation: This option is not correct.
+    correct_option: b
+    explanation: 'A Kyverno policy is a normal Kubernetes object: `apiVersion: kyverno.io/v1`, `kind: ClusterPolicy`/`Policy`, `metadata` (name, and namespace for `Policy`), and `spec`, which contains `rules`, `validationFailureAction`, `background`, and everything else that defines behavior. This is exactly why `kubectl` treats a policy like any other resource for `get`/`describe`/`apply`.'
+
+  - id: ats007-final-q08
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Test admission with a server-side dry run
+    source_readings:
+    - sections/section-020/module-01/course-03-dry-runs-and-multi-document-files.md
+    prompt: You want to check whether a proposed Pod manifest would be accepted or rejected by currently active policies, without actually creating the Pod in the cluster. What is the most direct way to do this with `kubectl`?
+    options:
+    - id: a
+      text: "`kubectl apply -f pod.yaml --dry-run=client`"
+      explanation: "(`--dry-run=client`) only validates the manifest locally against the client's schema cache — it never reaches the API server or any admission webhook, so it cannot reflect Kyverno's decision."
+    - id: b
+      text: "`kubectl apply -f pod.yaml --dry-run=server`"
+      explanation: Correct. `--dry-run=server` submits the request all the way to the API server (and therefore through admission control, including Kyverno's webhooks) without persisting the object, so it faithfully reports whether a real create would be allowed or rejected.
+    - id: c
+      text: "`kubectl describe -f pod.yaml`"
+      explanation: Just prints a manifest's fields; it does not submit anything for admission.
+    - id: d
+      text: "`kubectl get clusterpolicy -o yaml`"
+      explanation: Only lists existing policies; it does not evaluate a specific resource against them.
+    correct_option: b
+    explanation: "`--dry-run=server` submits the request all the way to the API server (and therefore through admission control, including Kyverno's webhooks) without persisting the object, so it faithfully reports whether a real create would be allowed or rejected."
+
+  - id: ats007-final-q09
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Use a configMap context entry
+    source_readings:
+    - sections/section-020/module-02/course-02-context-configmap-and-apicall.md
+    prompt: A validate rule needs to reject any Pod whose `env` label is not one of a small set of allowed values, where that allowed set is expected to change over time without editing the policy YAML itself. What is the idiomatic Kyverno mechanism for this?
+    options:
+    - id: a
+      text: Hardcode the allowed values directly into `validate.pattern` and re-apply the policy whenever they change.
+      explanation: Works but requires editing and reapplying the policy every time the list changes, which is what the question asks you to avoid.
+    - id: b
+      text: Use a `context[].configMap` entry to load the allowed values from a ConfigMap, then reference them as a variable inside the rule.
+      explanation: Correct. `context[].configMap` pulls live key/value data from a ConfigMap into the rule as a variable at evaluation time. Editing the ConfigMap changes the effective allow-list immediately, with no policy edit or reapply needed — exactly the "changes over time" requirement.
+    - id: c
+      text: Use `preconditions` alone, since preconditions can hold arbitrary lookup tables.
+      explanation: "`preconditions` gate whether a rule runs at all; they are not a data-loading mechanism."
+    - id: d
+      text: Use `verifyImages`, since it is the only rule type that reads external data.
+      explanation: "`verifyImages` is unrelated to label validation, and `context` is available to any rule type, not just `verifyImages`."
+    correct_option: b
+    explanation: '`context[].configMap` pulls live key/value data from a ConfigMap into the rule as a variable at evaluation time. Editing the ConfigMap changes the effective allow-list immediately, with no policy edit or reapply needed — exactly the "changes over time" requirement.'
+
+  - id: ats007-final-q10
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Resolve JMESPath variables
+    source_readings:
+    - sections/section-020/module-02/course-01-variables-and-jmespath-basics.md
+    prompt: 'Inside a Kyverno rule, you write `message: "namespace {{ request.object.metadata.namespace }} is not allowed"`. What is `{{ ... }}` doing here?'
+    options:
+    - id: a
+      text: It is a Bash-style variable substitution performed by the shell before Kyverno ever sees the YAML.
+      explanation: Confuses shell interpolation with Kyverno's own variable resolution, which happens inside the Kyverno controller, not a shell.
+    - id: b
+      text: It wraps a JMESPath expression that Kyverno resolves against the AdmissionReview request (or other context) at evaluation time.
+      explanation: Correct. Kyverno variables use `{{ }}` handlebars-style syntax wrapping a JMESPath expression, resolved against the incoming `request`, the target resource, or any bound `context` values — here it pulls the actual namespace of the object being admitted into the rejection message shown to the user.
+    - id: c
+      text: It is a Helm templating directive that only works when policies are installed via a Helm chart.
+      explanation: This is native Kyverno syntax, unrelated to Helm and available regardless of install method.
+    - id: d
+      text: It has no special meaning; Kyverno prints the literal text including the braces.
+      explanation: Kyverno explicitly resolves this syntax; it is a core, documented feature.
+    correct_option: b
+    explanation: Kyverno variables use `{{ }}` handlebars-style syntax wrapping a JMESPath expression, resolved against the incoming `request`, the target resource, or any bound `context` values — here it pulls the actual namespace of the object being admitted into the rejection message shown to the user.
+
+  - id: ats007-final-q11
+    type: single_choice
+    difficulty: beginner
+    learning_objective: Order the admission pipeline stages
+    source_readings:
+    - sections/section-030/module-01/course-01-api-request-lifecycle-and-webhook-types.md
+    prompt: During a Pod create request, in what order does the Kubernetes API server invoke admission control relative to schema validation?
+    options:
+    - id: a
+      text: Validating webhooks run first, then mutating webhooks, then schema validation.
+      explanation: Reverses the actual order.
+    - id: b
+      text: Mutating webhooks run first (potentially rewriting the object), then the object is checked against the OpenAPI schema, then validating webhooks run (pass/fail only).
+      explanation: Correct. The admission pipeline is ordered specifically so that mutation happens first (since it can add required fields), followed by schema validation, followed by validating webhooks — which run last and can only accept or reject, never modify. This ordering is why a mutating policy can safely inject a field a validating policy then checks for.
+    - id: c
+      text: Schema validation runs first and rejects malformed objects before any webhook is ever called.
+      explanation: Mutating webhooks run before schema validation specifically so they can fix up an otherwise-incomplete object first.
+    - id: d
+      text: Mutating and validating webhooks always run in the same single combined pass, in registration order.
+      explanation: Conflates two distinct phases that the API server keeps separate by design.
+    correct_option: b
+    explanation: The admission pipeline is ordered specifically so that mutation happens first (since it can add required fields), followed by schema validation, followed by validating webhooks — which run last and can only accept or reject, never modify. This ordering is why a mutating policy can safely inject a field a validating policy then checks for.
+
+  - id: ats007-final-q12
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Compare failurePolicy Fail and Ignore
+    source_readings:
+    - sections/section-030/module-01/course-02-mutating-vs-validating-webhooks.md
+    prompt: 'Kyverno''s admission webhook becomes temporarily unreachable due to a rolling update. A policy''s webhook rule has `failurePolicy: Fail`. What happens to a matching resource submitted during that window?'
+    options:
+    - id: a
+      text: The request is allowed through, since Kyverno is not available to block it.
+      explanation: 'Describes `failurePolicy: Ignore`, the opposite setting.'
+    - id: b
+      text: The request is rejected, because `Fail` makes the webhook fail-closed — an unreachable webhook is treated as a denial.
+      explanation: 'Correct. `failurePolicy: Fail` is the fail-closed setting: if the webhook cannot be reached or errors within its `timeoutSeconds`, the API server treats that as a rejection rather than silently letting the request through. This favors safety (nothing ungoverned slips in) at the cost of availability if the webhook itself is down. `Ignore` is the fail-open alternative.'
+    - id: c
+      text: The request is queued and retried indefinitely until Kyverno comes back.
+      explanation: Is not how admission webhooks behave — they respect `timeoutSeconds` and resolve one way or the other, they do not queue indefinitely.
+    - id: d
+      text: "`failurePolicy` only affects mutating webhooks, so nothing changes for a validate rule."
+      explanation: "`failurePolicy` applies to both mutating and validating webhook configurations."
+    correct_option: b
+    explanation: "`failurePolicy: Fail` is the fail-closed setting: if the webhook cannot be reached or errors within its `timeoutSeconds`, the API server treats that as a rejection rather than silently letting the request through. This favors safety (nothing ungoverned slips in) at the cost of availability if the webhook itself is down. `Ignore` is the fail-open alternative."
+
+  - id: ats007-final-q13
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Explain Kyverno's managed webhook configuration
+    source_readings:
+    - sections/section-030/module-01/course-02-mutating-vs-validating-webhooks.md
+    prompt: You just applied a brand-new `ClusterPolicy` that matches only the `ConfigMap` kind. Which live cluster object should you inspect to confirm Kyverno has actually started intercepting `ConfigMap` requests for this policy?
+    options:
+    - id: a
+      text: "`kubectl get clusterpolicyreport` — only reports reflect active interception."
+      explanation: "`PolicyReport`/`ClusterPolicyReport` reflect evaluation *results*, not whether the webhook is currently configured to intercept a kind at all."
+    - id: b
+      text: "`kubectl get validatingwebhookconfigurations` (or `mutatingwebhookconfigurations`) and check that a `ConfigMap` rule entry now appears in Kyverno's managed webhook."
+      explanation: Correct. Kyverno dynamically rewrites its own `MutatingWebhookConfiguration`/`ValidatingWebhookConfiguration` rules to match exactly the resource kinds referenced by currently active policies. Adding a policy that targets `ConfigMap` should promptly add a `ConfigMap` entry to the relevant webhook object — inspecting that object directly is the authoritative way to confirm interception is live.
+    - id: c
+      text: "`kubectl get events -n kyverno` — webhook rule changes are only visible as events, never in the webhook object itself."
+      explanation: Undersells events — but even where events exist, they are not the authoritative source; the webhook object itself is.
+    - id: d
+      text: "`kubectl top pod -n kyverno` — CPU usage rising confirms interception."
+      explanation: Is an indirect, unreliable signal, not a direct confirmation.
+    correct_option: b
+    explanation: Kyverno dynamically rewrites its own `MutatingWebhookConfiguration`/`ValidatingWebhookConfiguration` rules to match exactly the resource kinds referenced by currently active policies. Adding a policy that targets `ConfigMap` should promptly add a `ConfigMap` entry to the relevant webhook object — inspecting that object directly is the authoritative way to confirm interception is live.
+
+  - id: ats007-final-q14
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Map reports to controllers
+    source_readings:
+    - sections/section-030/module-02/course-02-background-scanning-and-controllers.md
+    prompt: 'A policy enforcing a `cost-center` label on Deployments is deployed with `validationFailureAction: Audit`. A pre-existing, non-compliant Deployment is already running. What do you expect to see, and what controller is responsible for it appearing?'
+    options:
+    - id: a
+      text: The Deployment is deleted; the `kyverno-cleanup-controller` handles it.
+      explanation: "`validate` rules never delete resources, and cleanup policies are an unrelated feature."
+    - id: b
+      text: A failing `PolicyReport` entry for that Deployment appears from a background scan, produced by the `kyverno-reports-controller` (via background-scan results from the `kyverno-background-controller`).
+      explanation: 'Correct. With `background: true` (Kyverno''s default for validate rules) and `Audit` mode, Kyverno periodically re-scans existing resources against active policies; results — including this pre-existing non-compliant Deployment — are recorded as `PolicyReport` entries. The reports pipeline is owned by the `kyverno-reports-controller`, distinct from the `kyverno-admission-controller` that only handles live, real-time admission requests.'
+    - id: c
+      text: Nothing happens until the Deployment is next updated, because Audit mode never inspects existing resources.
+      explanation: Background scanning specifically covers resources that predate the policy.
+    - id: d
+      text: The `kyverno-admission-controller` retroactively blocks the already-running Deployment.
+      explanation: Admission-time blocking only applies to new/updated requests going forward, never retroactively to something already persisted.
+    correct_option: b
+    explanation: 'With `background: true` (Kyverno''s default for validate rules) and `Audit` mode, Kyverno periodically re-scans existing resources against active policies; results — including this pre-existing non-compliant Deployment — are recorded as `PolicyReport` entries. The reports pipeline is owned by the `kyverno-reports-controller`, distinct from the `kyverno-admission-controller` that only handles live, real-time admission requests.'
+
+  - id: ats007-final-q15
+    type: single_choice
+    difficulty: beginner
+    learning_objective: Tell mutable tags from immutable digests
+    source_readings:
+    - sections/section-040/module-01/course-01-oci-manifests-digests-vs-tags.md
+    prompt: Two engineers both refer to the "same" image as `registry.internal/app:latest`. One pulls it Monday, the other pulls it Friday, and they run different code. What OCI concept explains this, and what should a policy pin to instead to guarantee reproducibility?
+    options:
+    - id: a
+      text: This is a registry bug; tags are supposed to be immutable by spec.
+      explanation: Mutability of tags is intentional OCI/Distribution Spec behavior, not a bug.
+    - id: b
+      text: Tags are mutable pointers that can be repointed to a different manifest at any time; pinning to the image's digest (`app@sha256:...`) guarantees an immutable reference.
+      explanation: Correct. A tag is just a mutable label a registry maps to whatever manifest was last pushed under that name; a push on Wednesday silently changes what `:latest` (or any tag) resolves to. A digest (`sha256:...`) is a content hash of one specific, immutable manifest, so `app@sha256:...` always resolves to exactly the same bytes, closing the tag-mutation gap.
+    - id: c
+      text: This only happens with `latest` specifically; any other tag is guaranteed stable.
+      explanation: Any tag, not just `latest`, can be repointed; `latest` is just conventionally repointed most often.
+    - id: d
+      text: Digests and tags are interchangeable; the discrepancy must be a caching issue unrelated to OCI semantics.
+      explanation: Digests and tags are fundamentally different kinds of references with different guarantees.
+    correct_option: b
+    explanation: A tag is just a mutable label a registry maps to whatever manifest was last pushed under that name; a push on Wednesday silently changes what `:latest` (or any tag) resolves to. A digest (`sha256:...`) is a content hash of one specific, immutable manifest, so `app@sha256:...` always resolves to exactly the same bytes, closing the tag-mutation gap.
+
+  - id: ats007-final-q16
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Name the rule action for image verification
+    source_readings:
+    - sections/section-040/module-02/course-01-verifyimages-rule-anatomy-and-attestors.md
+    prompt: Which Kyverno rule action type is responsible for cryptographically verifying an image's signature before a Pod is admitted?
+    options:
+    - id: a
+      text: "`validate`, using a `pattern` block against the image field."
+      explanation: A plain `pattern` block can check that an image string matches a shape (like a registry prefix), but cannot perform cryptographic signature verification.
+    - id: b
+      text: "`verifyImages`."
+      explanation: Correct. `verifyImages` is Kyverno's dedicated rule action for image signature and attestation verification — it fetches the signature/attestation OCI artifacts from the registry at admission time and checks them against configured `attestors` before allowing the Pod through.
+    - id: c
+      text: "`mutate`, using `patchesJson6902` to inject a signature field."
+      explanation: "`mutate` rewrites fields; it has no cryptographic verification capability."
+    - id: d
+      text: "`generate`, by cloning a pre-verified Pod spec."
+      explanation: "`generate` only creates new resources; it does not gate the admission of the triggering Pod."
+    correct_option: b
+    explanation: "`verifyImages` is Kyverno's dedicated rule action for image signature and attestation verification — it fetches the signature/attestation OCI artifacts from the registry at admission time and checks them against configured `attestors` before allowing the Pod through."
+
+  - id: ats007-final-q17
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Explain tag-to-digest rewriting
+    source_readings:
+    - sections/section-040/module-02/course-02-mutatedigest-and-required-attestations.md
+    prompt: 'A `verifyImages` rule sets `mutateDigest: true` and successfully verifies a Pod''s image signature. What does Kyverno do to the Pod''s image reference as a result?'
+    options:
+    - id: a
+      text: Nothing — `mutateDigest` only affects logging output.
+      explanation: Undersells the feature — it has a real, functional effect on the persisted object, not just logs.
+    - id: b
+      text: It rewrites the tag-based image reference to its verified digest (`image@sha256:...`) before the Pod is persisted, closing the tag-mutation/TOCTOU gap.
+      explanation: 'Correct. `mutateDigest: true` has Kyverno rewrite the Pod''s image reference from whatever tag was submitted to the exact digest that was just verified, so the Pod that actually runs is guaranteed to be the bit-for-bit image that passed signature verification — even if the tag is later repointed to something else in the registry.'
+    - id: c
+      text: It deletes the tag entirely, leaving the image field empty.
+      explanation: And *Option D* invent behavior `mutateDigest` does not perform; it substitutes a specific, valid digest reference, not an empty or placeholder value.
+    - id: d
+      text: It replaces the image with a generic placeholder to hide the real registry path.
+      explanation: This option is not correct.
+    correct_option: b
+    explanation: "`mutateDigest: true` has Kyverno rewrite the Pod's image reference from whatever tag was submitted to the exact digest that was just verified, so the Pod that actually runs is guaranteed to be the bit-for-bit image that passed signature verification — even if the tag is later repointed to something else in the registry."
+
+  - id: ats007-final-q18
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Require attestations beyond a signature
+    source_readings:
+    - sections/section-040/module-02/course-02-mutatedigest-and-required-attestations.md
+    prompt: Beyond a bare signature, you want a `verifyImages` rule to also require that an image carries a signed attestation proving it passed a vulnerability scan, before it can be admitted. What is the correct mechanism?
+    options:
+    - id: a
+      text: Add a second, separate `validate` rule that checks a label claiming the scan passed.
+      explanation: Is weak — a label is just self-reported metadata on the resource, trivially set by anyone, unlike a cryptographically signed attestation tied to the image itself.
+    - id: b
+      text: Use the rule's `attestations` block to require and evaluate a signed attestation predicate (via JMESPath `conditions`) alongside the signature check.
+      explanation: Correct. `verifyImages` supports an `attestations` block that requires and evaluates signed in-toto/SLSA-style attestation predicates attached to the image, using JMESPath `conditions` against the attestation payload — giving policy control over *what process produced the image* (e.g., "scanned and passed"), not just *who signed it*.
+    - id: c
+      text: This is not possible — `verifyImages` can only check bare signatures, never attestations.
+      explanation: Is factually wrong — attestation support is a core, documented `verifyImages` capability.
+    - id: d
+      text: 'Set `required: false`, which automatically pulls in any available attestation.'
+      explanation: "`required` only controls whether an unsigned/unattested image is rejected outright; it does not itself define or fetch any particular attestation predicate."
+    correct_option: b
+    explanation: '`verifyImages` supports an `attestations` block that requires and evaluates signed in-toto/SLSA-style attestation predicates attached to the image, using JMESPath `conditions` against the attestation payload — giving policy control over *what process produced the image* (e.g., "scanned and passed"), not just *who signed it*.'
+
+  - id: ats007-final-q19
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Evaluate a policy offline with kyverno apply
+    source_readings:
+    - sections/section-020/module-03/course-02-kyverno-apply-offline-evaluation.md
+    prompt: You want to check a policy against a resource manifest on your laptop, in a CI job that has no access to any Kubernetes cluster. Which Kyverno CLI invocation fits, and why is it possible without a cluster?
+    options:
+    - id: a
+      text: "`kubectl apply --dry-run=server -f policy.yaml` — server-side dry-run is the only offline evaluation path."
+      explanation: "`--dry-run=server` specifically requires a reachable API server, since the whole point is to exercise the real admission path."
+    - id: b
+      text: "`kyverno apply policy.yaml --resource resource.yaml` — the CLI evaluates policy rules against local manifest files entirely in-process, with no API server involved."
+      explanation: Correct. The `kyverno` CLI is a standalone binary that carries the same policy-evaluation engine the in-cluster controllers use. `kyverno apply` loads the policy and the resource from local files and evaluates one against the other in-process, so it needs no cluster, no webhook, and no network — which is exactly what makes it usable as a fast CI gate (it also exits non-zero when a policy fails).
+    - id: c
+      text: "`kyverno test --cluster policy.yaml` — `test` is the only subcommand that works offline."
+      explanation: Misuses the flag — `--cluster` does the opposite, telling the CLI to pull resources from a live cluster rather than local files.
+    - id: d
+      text: It is not possible; every Kyverno evaluation requires a running admission controller.
+      explanation: Offline evaluation is a headline feature of the CLI, not an impossibility.
+    correct_option: b
+    explanation: The `kyverno` CLI is a standalone binary that carries the same policy-evaluation engine the in-cluster controllers use. `kyverno apply` loads the policy and the resource from local files and evaluates one against the other in-process, so it needs no cluster, no webhook, and no network — which is exactly what makes it usable as a fast CI gate (it also exits non-zero when a policy fails).
+
+  - id: ats007-final-q20
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Write a regression suite with kyverno test
+    source_readings:
+    - sections/section-020/module-03/course-03-kyverno-test-suites-and-jp.md
+    prompt: Your team maintains a library of 30 policies and wants a committed, repeatable regression suite that asserts each policy's expected pass/fail result per test resource, runnable in CI. Which Kyverno CLI subcommand is designed for this, versus ad-hoc one-off checks?
+    options:
+    - id: a
+      text: "`kyverno apply`, run once per policy in a shell loop — it is the only subcommand that reports results."
+      explanation: Undersells the distinction — `kyverno apply` does report results, but it has no notion of an *expected* result, so it cannot fail a build when a policy's behavior silently changes; it is the ad-hoc tool, not the regression suite.
+    - id: b
+      text: "`kyverno test`, which reads a declarative `kyverno-test.yaml` listing `policies`, `resources`, and a `results` block of expected outcomes, then reports pass/fail per expectation."
+      explanation: Correct. `kyverno test` is the structured, declarative test-suite runner. Its `kyverno-test.yaml` file names the policies and resources under test and declares a `results` list of the expected outcome (`pass`/`fail`/`skip`/`warn`) for each policy/rule/resource combination. Running `kyverno test .` walks a directory tree and checks every expectation — which is what makes it a real regression suite rather than a manual spot check.
+    - id: c
+      text: "`kyverno jp`, which evaluates each policy's expected results as a JMESPath expression."
+      explanation: "`kyverno jp` is a JMESPath expression debugger, unrelated to test-suite execution."
+    - id: d
+      text: "`kubectl get policyreport`, since committed test expectations are stored as PolicyReports."
+      explanation: PolicyReports are runtime evaluation results from a live cluster, not committed test expectations.
+    correct_option: b
+    explanation: "`kyverno test` is the structured, declarative test-suite runner. Its `kyverno-test.yaml` file names the policies and resources under test and declares a `results` list of the expected outcome (`pass`/`fail`/`skip`/`warn`) for each policy/rule/resource combination. Running `kyverno test .` walks a directory tree and checks every expectation — which is what makes it a real regression suite rather than a manual spot check."
+
+  - id: ats007-final-q21
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Explain autogen and name the rule that denies a Deployment
+    source_readings:
+    - sections/section-010/module-04/course-01-autogen-rules-for-pod-controllers.md
+    prompt: A `ClusterPolicy` has one rule named `check-team-label` that matches only `Pod`. A Deployment whose Pod template has no `team` label is denied. Which rule name appears in the denial message?
+    options:
+    - id: a
+      text: "`check-team-label`, because the rule matches the Deployment directly."
+      explanation: The rule matches only Pods, so the Deployment is not judged by the original rule.
+    - id: b
+      text: "`autogen-check-team-label`, a copy Kyverno wrote for the Deployment."
+      explanation: Correct. Kyverno copies Pod rules to kinds that contain a Pod template and prefixes the copy with `autogen-`.
+    - id: c
+      text: "`deny-deployment`, a rule the API server adds."
+      explanation: The API server adds no such rule.
+    - id: d
+      text: No rule. Deployments are never checked by a Pod policy.
+      explanation: Kyverno checks the Pod template of a Deployment through autogen.
+    correct_option: b
+    explanation: Kyverno writes autogen copies of a Pod rule for the kinds that contain a Pod template, and names them with the prefix `autogen-`.
+
+  - id: ats007-final-q22
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Build and preview a policy overlay with kubectl
+    source_readings:
+    - sections/section-020/module-04/course-02-kustomize-overlays-for-policies.md
+    prompt: You keep one base policy and an overlay folder `overlays/prod`. Which command shows what the overlay would change in the live cluster, without applying it?
+    options:
+    - id: a
+      text: "`kubectl apply -f overlays/prod`"
+      explanation: This sends the raw `kustomization.yaml` and does not preview.
+    - id: b
+      text: "`kubectl diff -k overlays/prod`"
+      explanation: Correct. The diff builds the overlay with Kustomize and compares it with the live objects.
+    - id: c
+      text: "`kubectl get -k overlays/prod --dry-run`"
+      explanation: This is not a valid way to preview a change.
+    - id: d
+      text: "`kubectl explain overlays/prod`"
+      explanation: "`explain` shows a field's schema, not a change."
+    correct_option: b
+    explanation: "`kubectl diff -k <folder>` builds the overlay and compares it with the cluster. It exits with 1 when there are differences."
+
+  - id: ats007-final-q23
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Set failurePolicy and read it from the webhook
+    source_readings:
+    - sections/section-030/module-03/course-01-failure-policy-and-timeouts.md
+    prompt: 'A policy sets `failurePolicy: Ignore` and `webhookTimeoutSeconds: 20`. Where do you see the effect in the cluster?'
+    options:
+    - id: a
+      text: In the `kyverno` ConfigMap under `resourceFilters`.
+      explanation: That list is for skipped objects.
+    - id: b
+      text: In the validating webhook configuration, where the `-ignore` webhook has a rule for the kind and a timeout of 20.
+      explanation: Correct. Kyverno sorts policies into a webhook per failure policy and sets its timeout from the policy.
+    - id: c
+      text: In a new `PolicyReport`.
+      explanation: Reports hold results, not webhook settings.
+    - id: d
+      text: Nowhere. Failure policy exists only inside Kyverno's memory.
+      explanation: It is written into the webhook configuration.
+    correct_option: b
+    explanation: Kyverno writes each policy's rules into the webhook that matches its failure policy, and sets that webhook's timeout from the policy.
+
+  - id: ats007-final-q24
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Explain why forbidding latest is not enough
+    source_readings:
+    - sections/section-040/module-03/course-01-registry-and-tag-rules.md
+    prompt: 'A rule says `image: "!*:latest"`. A Pod uses the image `registry.k8s.io/pause` with no tag. What happens?'
+    options:
+    - id: a
+      text: It is rejected, because no tag means latest.
+      explanation: The pattern checks the text, and the text has no `:latest`.
+    - id: b
+      text: It passes this rule, because the text does not contain `:latest`. A separate rule must require a tag.
+      explanation: Correct. An untagged image slips through a rule that only forbids the word latest.
+    - id: c
+      text: Kyverno adds the tag `3.9`.
+      explanation: Kyverno does not invent tags.
+    - id: d
+      text: It is rejected because the registry is wrong.
+      explanation: The registry is allowed in this example.
+    correct_option: b
+    explanation: A pattern reads the image text. Without `:latest` in it the rule passes, so add a rule that requires a tag such as `"*:*"`.
+

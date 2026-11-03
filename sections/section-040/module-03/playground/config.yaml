@@ -1,0 +1,19 @@
+# Image Rules: Registries, Tags & Variables (PLAYGROUND) - Playground environment
+# A clean sandbox: no task, no grading, no `astrona submit`.
+# Runtime: a kind Kubernetes cluster (no `runtime:` block selects kind).
+
+metadata:
+  name: "section-040-module-03-playground"
+  docs:
+    guide: "docs/overview.md"
+
+bootstrap:
+  init:
+    - name: "prepare"
+      description: "Environment prep only: install Kyverno and seed sample data. Nothing to solve."
+      type: "file"
+      source: "bootstrap/prepare.sh"
+  manifests: []
+
+teardown:
+  keepCluster: false

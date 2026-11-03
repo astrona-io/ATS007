@@ -1,0 +1,266 @@
+# Knowledge check for section 010. Listed in astrona.yaml as a `type: quiz` entry after the capstone lab.
+schema_version: 1
+kind: question_bank
+id: ats007-010
+course_id: ATS007
+exam_code: KCA
+status: draft
+provenance: Original practice material written for this course; not official exam questions.
+scope:
+  type: section
+  id: section-010
+  title: "Kyverno Policies & Rules"
+questions:
+  - id: ats007-010-q01
+    type: single_choice
+    difficulty: beginner
+    learning_objective: Choose between ClusterPolicy and Policy for a rule that must stay in one namespace
+    source_readings:
+    - sections/section-010/module-01/course-01-clusterpolicy-vs-policy-and-rule-anatomy.md
+    prompt: You need a policy that only ever applies inside the `billing` namespace and must never be visible or applicable to any other namespace in the cluster, even by accident. Which Kyverno resource kind should you author?
+    options:
+    - id: a
+      text: "`ClusterPolicy`, because it is the only kind Kyverno's admission controller watches."
+      explanation: "`ClusterPolicy` applies cluster-wide by default."
+    - id: b
+      text: "`Policy`, because it is namespace-scoped and can only ever match resources inside its own namespace."
+      explanation: Correct. A `Policy` resource is itself namespace-scoped — it lives inside `billing` and Kyverno restricts its rules to that same namespace automatically. There is no `resources.namespaces` field needed and no way for it to leak to another namespace, even by a future editing mistake.
+    - id: c
+      text: "`ClusterPolicy` with `resources.namespaces: [billing]` set in every rule's `match` block."
+      explanation: It works today, but a `ClusterPolicy` is still cluster-scoped — a future edit that removes or misconfigures `resources.namespaces` silently widens the blast radius to the whole cluster, which is exactly the accident the question asks you to prevent.
+    - id: d
+      text: "`Policy` with `resources.namespaces: [billing]` set in every rule's `match` block."
+      explanation: 'It is redundant: a `Policy` is already confined to its own namespace, so a `resources.namespaces` filter inside it adds nothing.'
+    correct_option: b
+    explanation: A `Policy` resource is itself namespace-scoped — it lives inside `billing` and Kyverno restricts its rules to that same namespace automatically. There is no `resources.namespaces` field needed and no way for it to leak to another namespace, even by a future editing mistake.
+
+  - id: ats007-010-q02
+    type: single_choice
+    difficulty: beginner
+    learning_objective: State that a rule has exactly one action and that mutate runs before validate
+    source_readings:
+    - sections/section-010/module-01/course-01-clusterpolicy-vs-policy-and-rule-anatomy.md
+    prompt: You write a `ClusterPolicy` rule that must both validate an incoming Pod's labels and, if the labels are missing, add a default label instead of blocking it. How many action blocks (`validate`, `mutate`, `generate`, `verifyImages`) can you put inside a single rule to do both?
+    options:
+    - id: a
+      text: Two — one `validate` and one `mutate` block in the same rule.
+      explanation: Describes a shape Kyverno's schema does not support.
+    - id: b
+      text: One — each rule commits to exactly one action type; you need two separate rules (or two separate policies).
+      explanation: Correct. Every Kyverno rule is scoped to exactly one action type. A rule is a `validate` rule, a `mutate` rule, a `generate` rule, or a `verifyImages` rule — never a combination. To validate and mutate related to the same resource, you author two rules (in the same policy or two policies), and mutate rules run before validate rules in the admission flow, so a mutate rule can supply a default that a later validate rule then accepts.
+    - id: c
+      text: Any number, as long as they are listed under `spec.rules[0].actions`.
+      explanation: Invents a `spec.rules[].actions` field that does not exist.
+    - id: d
+      text: Zero — Kyverno rules cannot mutate and validate; only `verifyImages` rules can do both.
+      explanation: "`verifyImages` is its own single action type for image signature/attestation verification, not a combined validate+mutate mechanism."
+    correct_option: b
+    explanation: Every Kyverno rule is scoped to exactly one action type. A rule is a `validate` rule, a `mutate` rule, a `generate` rule, or a `verifyImages` rule — never a combination. To validate and mutate related to the same resource, you author two rules (in the same policy or two policies), and mutate rules run before validate rules in the admission flow, so a mutate rule can supply a default that a later validate rule then accepts.
+
+  - id: ats007-010-q03
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Predict what a match block with no exclude selects
+    source_readings:
+    - sections/section-010/module-01/course-02-match-exclude-and-resource-selection.md
+    prompt: 'Your `ClusterPolicy` uses `match.resources.kinds: [Pod]` with no `exclude` block, and `validationFailureAction: Enforce`. After applying it, Kyverno''s own components in the `kyverno` namespace start crash-looping because their own Pods are being rejected by the new policy. What should you add to prevent Kyverno from blocking its own control-plane Pods?'
+    options:
+    - id: a
+      text: 'Set `background: false` on the rule.'
+      explanation: Only affects background re-scanning of existing resources, not live admission-time enforcement — it would not stop the crash loop.
+    - id: b
+      text: 'Add an `exclude` block matching `resources.namespaces: [kyverno]` (or a broader system-namespace exclusion) alongside the `match` block.'
+      explanation: Correct. `match` decides what a rule looks at; `exclude` carves out exceptions from that selection. Excluding system namespaces such as `kyverno` (and typically `kube-system`) is standard practice for any broadly-scoped policy so the enforcement engine, and other cluster infrastructure, is never at risk of blocking itself.
+    - id: c
+      text: Change `validationFailureAction` to `Audit` permanently.
+      explanation: Removes enforcement everywhere, which defeats the purpose of the policy instead of narrowly protecting Kyverno's own namespace.
+    - id: d
+      text: Delete the `ClusterPolicy` and recreate it as a `Policy` inside the `kyverno` namespace.
+      explanation: Would only protect the `kyverno` namespace itself if the `Policy` lived there, but throws away cluster-wide enforcement for every other namespace, which was presumably the goal.
+    correct_option: b
+    explanation: "`match` decides what a rule looks at; `exclude` carves out exceptions from that selection. Excluding system namespaces such as `kyverno` (and typically `kube-system`) is standard practice for any broadly-scoped policy so the enforcement engine, and other cluster infrastructure, is never at risk of blocking itself."
+
+  - id: ats007-010-q04
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Write a validate pattern for a numeric comparison
+    source_readings:
+    - sections/section-010/module-02/course-01-pattern-validation-and-deny-conditions.md
+    prompt: 'You need a validate rule that checks a Deployment''s `spec.replicas` is greater than or equal to `2`. Your `pattern` block writes `spec: { replicas: 2 }`, but this incorrectly rejects Deployments with `replicas: 3`. What is the correct pattern syntax for "greater than or equal to 2"?'
+    options:
+    - id: a
+      text: '`spec: { replicas: ">=2" }`'
+      explanation: Correct. Kyverno's declarative pattern language supports operator prefixes on scalar values, including `>`, `<`, `>=`, `<=`, and `!=`. Writing `">=2"` as the pattern value for `replicas` correctly expresses "greater than or equal to 2," matching `2`, `3`, `10`, and so on.
+    - id: b
+      text: '`spec: { replicas: "2+" }`'
+      explanation: Invents a `+` suffix operator that Kyverno's pattern syntax does not support.
+    - id: c
+      text: '`spec: { replicas: "*2" }`'
+      explanation: — `*` is Kyverno's wildcard for "any value" (or "any characters" in strings), not a numeric comparison operator.
+    - id: d
+      text: '`spec: { replicas: "!2" }`'
+      explanation: — `!` means "not equal to," so `"!2"` would match everything except exactly `2`, including `1`, `0`, or `-5`, which is not the intended constraint.
+    correct_option: a
+    explanation: Kyverno's declarative pattern language supports operator prefixes on scalar values, including `>`, `<`, `>=`, `<=`, and `!=`. Writing `">=2"` as the pattern value for `replicas` correctly expresses "greater than or equal to 2," matching `2`, `3`, `10`, and so on.
+
+  - id: ats007-010-q05
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Use deny conditions for logic a pattern cannot express
+    source_readings:
+    - sections/section-010/module-02/course-01-pattern-validation-and-deny-conditions.md
+    prompt: You need to reject any Pod whose `spec.serviceAccountName` is exactly `default` AND whose namespace is NOT `kube-system` — a piece of logic a plain `pattern` block cannot express with an anti-value check across two different fields. Which Kyverno validate mechanism is designed for this?
+    options:
+    - id: a
+      text: A `pattern` block with two nested wildcard entries.
+      explanation: "— `pattern` matching describes shape and simple per-field operators; it has no AND/OR combinator across independent fields the way `deny.conditions` does."
+    - id: b
+      text: A `deny` block with an `any`/`all` `conditions` list using operators like `Equals` and `NotEquals`.
+      explanation: Correct. `deny.conditions` lets you express boolean logic — `all` (AND) or `any` (OR) — combining independent JMESPath-derived values with operators such as `Equals`, `NotEquals`, and `In`. This is exactly the tool for "field X equals this AND field Y does not equal that," which a single declarative `pattern` tree cannot express cleanly.
+    - id: c
+      text: A second `match` block appended to the same rule.
+      explanation: "— a rule has one `match` block; a second one is not valid syntax, and match/exclude control resource *selection*, not conditional validation logic."
+    - id: d
+      text: A `foreach` loop over `request.object.metadata.namespace`.
+      explanation: "— `foreach` iterates over list-valued fields (like containers); the namespace is a single scalar, so there is nothing to iterate over here."
+    correct_option: b
+    explanation: '`deny.conditions` lets you express boolean logic — `all` (AND) or `any` (OR) — combining independent JMESPath-derived values with operators such as `Equals`, `NotEquals`, and `In`. This is exactly the tool for "field X equals this AND field Y does not equal that," which a single declarative `pattern` tree cannot express cleanly.'
+
+  - id: ats007-010-q06
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Use foreach to check every container in a Pod
+    source_readings:
+    - sections/section-010/module-02/course-02-foreach-and-background-scans.md
+    prompt: Your validate rule must ensure every container in a Pod (there could be one or five) sets `resources.limits.memory`. A plain `pattern` block written against `spec.containers[0].resources.limits.memory` only checks the first container. What is the correct fix?
+    options:
+    - id: a
+      text: Write the pattern against `spec.containers[*].resources.limits.memory` and stop there — Kyverno resolves wildcards automatically for every array index.
+      explanation: 'Is a common trap: while Kyverno''s pattern syntax does support the `*` wildcard in some contexts, the reliable and documented mechanism for "check this for every item in a list, however many there are" is `foreach`, not an assumed automatic wildcard array expansion.'
+    - id: b
+      text: Wrap the check in a `foreach` block iterating `request.object.spec.containers`, applying the pattern (or a `deny` condition) to each element.
+      explanation: Correct. `foreach` is purpose-built for validating (or mutating) every element of a variable-length list such as `spec.containers`, applying the same check to each item regardless of how many containers the Pod happens to declare.
+    - id: c
+      text: Duplicate the rule five times, once per possible container index.
+      explanation: Does not scale and breaks the moment a Pod has more or fewer containers than the number of duplicated rules.
+    - id: d
+      text: 'Set `background: true` so Kyverno re-checks every container during the next scan cycle.'
+      explanation: Only controls whether existing resources are periodically re-scanned; it does not iterate over a list at admission time.
+    correct_option: b
+    explanation: "`foreach` is purpose-built for validating (or mutating) every element of a variable-length list such as `spec.containers`, applying the same check to each item regardless of how many containers the Pod happens to declare."
+
+  - id: ats007-010-q07
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Explain what background scanning does for existing resources
+    source_readings:
+    - sections/section-010/module-02/course-02-foreach-and-background-scans.md
+    prompt: 'You set `background: true` and `validationFailureAction: Audit` on a validate rule, then apply it to a cluster that already has three non-compliant Deployments running. What happens to those three Deployments?'
+    options:
+    - id: a
+      text: They are immediately deleted by Kyverno's background controller.
+      explanation: "— Kyverno never deletes resources as a side effect of a validate rule."
+    - id: b
+      text: Nothing happens to them at admission time (they already exist); Kyverno's periodic background scan evaluates them against the rule and records the violations in `PolicyReport`/`ClusterPolicyReport` objects, without blocking or altering them.
+      explanation: 'Correct. `background: true` makes Kyverno periodically re-evaluate already-admitted resources against the policy, independent of admission control. Combined with `Audit`, findings are recorded as read-only `PolicyReport`/`ClusterPolicyReport` entries (visible with `kubectl get policyreport -A`) — nothing is blocked, deleted, or changed.'
+    - id: c
+      text: They are automatically mutated to become compliant.
+      explanation: "— automatic remediation of existing resources is a mutate-rule/background-mutation concern, not something a validate rule does."
+    - id: d
+      text: The next `kubectl apply -f` on any of them is silently ignored.
+      explanation: "— background scanning does not intercept or block future `kubectl apply` calls; that is what admission-time `Enforce` would do, and this rule is set to `Audit`."
+    correct_option: b
+    explanation: "`background: true` makes Kyverno periodically re-evaluate already-admitted resources against the policy, independent of admission control. Combined with `Audit`, findings are recorded as read-only `PolicyReport`/`ClusterPolicyReport` entries (visible with `kubectl get policyreport -A`) — nothing is blocked, deleted, or changed."
+
+  - id: ats007-010-q08
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Order mutate and validate rules and read the effect of a patch
+    source_readings:
+    - sections/section-010/module-03/course-01-mutate-patchstrategicmerge-and-json6902.md
+    prompt: 'You write a mutate rule with `patchStrategicMerge` to add the label `managed-by: kyverno` to every Pod in the `catalog` namespace, and a separate generate rule that clones a `NetworkPolicy` into every new namespace with `generate.synchronize: true`. A teammate manually edits the generated `NetworkPolicy` in one namespace to loosen it. What happens next?'
+    options:
+    - id: a
+      text: Kyverno leaves the manual edit alone permanently, since `synchronize` only applies at creation time.
+      explanation: 'Describes the behavior of `synchronize: false`, not `true`.'
+    - id: b
+      text: 'Kyverno reverts the manual edit back to match the source/policy definition, because `synchronize: true` keeps generated resources continuously matching their source.'
+      explanation: 'Correct. `generate.synchronize: true` does not stop at the moment of creation — Kyverno continuously reconciles the generated resource against its source (or the policy''s inline definition), reverting drift. If synchronization were not wanted after the initial generation, the policy would set `synchronize: false` instead.'
+    - id: c
+      text: The mutate rule silently deletes the edited `NetworkPolicy`.
+      explanation: Confuses two unrelated rules — the mutate rule only touches Pods in `catalog`, not the generated `NetworkPolicy`.
+    - id: d
+      text: Kyverno pauses all generate rules cluster-wide until the drift is resolved by an administrator.
+      explanation: "— a drifted generated resource does not pause unrelated generate rules elsewhere in the cluster."
+    correct_option: b
+    explanation: "`generate.synchronize: true` does not stop at the moment of creation — Kyverno continuously reconciles the generated resource against its source (or the policy's inline definition), reverting drift. If synchronization were not wanted after the initial generation, the policy would set `synchronize: false` instead."
+
+  - id: ats007-010-q09
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Explain autogen and name the rule that denies a Deployment
+    source_readings:
+    - sections/section-010/module-04/course-01-autogen-rules-for-pod-controllers.md
+    prompt: A `ClusterPolicy` has one rule named `check-team-label` that matches only `Pod`. A Deployment whose Pod template has no `team` label is denied. Which rule name appears in the denial message?
+    options:
+    - id: a
+      text: "`check-team-label`, because the rule matches the Deployment directly."
+      explanation: The rule matches only Pods, so the Deployment is not judged by the original rule.
+    - id: b
+      text: "`autogen-check-team-label`, a copy Kyverno wrote for the Deployment."
+      explanation: Correct. Kyverno copies Pod rules to kinds that contain a Pod template and prefixes the copy with `autogen-`.
+    - id: c
+      text: "`deny-deployment`, a rule the API server adds."
+      explanation: The API server adds no such rule.
+    - id: d
+      text: No rule. Deployments are never checked by a Pod policy.
+      explanation: Kyverno checks the Pod template of a Deployment through autogen.
+    correct_option: b
+    explanation: Kyverno writes autogen copies of a Pod rule for the kinds that contain a Pod template, and names them with the prefix `autogen-`.
+
+  - id: ats007-010-q10
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Switch autogen off for a policy
+    source_readings:
+    - sections/section-010/module-04/course-01-autogen-rules-for-pod-controllers.md
+    prompt: You want a Pod rule to apply to bare Pods only, and never to Deployments. What do you do?
+    options:
+    - id: a
+      text: Delete the Deployment kind from the cluster.
+      explanation: This is not possible and not related.
+    - id: b
+      text: 'Set `validationFailureAction: Audit`.'
+      explanation: Audit changes what happens on failure, not which kinds are covered.
+    - id: c
+      text: Set the annotation `pod-policies.kyverno.io/autogen-controllers` to `none` on the policy.
+      explanation: Correct. The annotation controls which controller kinds get a generated rule, and `none` turns autogen off.
+    - id: d
+      text: 'Add `autogen: false` under `spec`.'
+      explanation: There is no such field.
+    correct_option: c
+    explanation: The annotation `pod-policies.kyverno.io/autogen-controllers` controls which kinds get a generated rule, and `none` turns autogen off.
+
+  - id: ats007-010-q11
+    type: single_choice
+    difficulty: intermediate
+    learning_objective: Write a PolicyException for one rule and one named object
+    source_readings:
+    - sections/section-010/module-04/course-02-policy-exceptions.md
+    prompt: A `PolicyException` for the Pod `legacy-batch` lists the policy and the rule, but the Pod is still denied. The policy exceptions feature was never turned on. What happens?
+    options:
+    - id: a
+      text: Kyverno applies the exception anyway.
+      explanation: Exceptions are ignored when the feature is off.
+    - id: b
+      text: Kyverno ignores the exception and the Pod is denied.
+      explanation: Correct. The feature is off by default, so a `PolicyException` has no effect until an administrator enables it in the install.
+    - id: c
+      text: Kyverno deletes the policy.
+      explanation: Kyverno never deletes a policy for this reason.
+    - id: d
+      text: The Pod is admitted but a warning is logged.
+      explanation: The rule still runs, so the Pod is denied.
+    correct_option: b
+    explanation: Policy exceptions are off by default (the Helm value `features.policyExceptions.enabled`), so a `PolicyException` is ignored until it is switched on.
+

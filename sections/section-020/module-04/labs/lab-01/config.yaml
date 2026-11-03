@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-016"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "seed-base-policy"
+      description: "Seeds /root/lab with a base policy and an empty overlay folder"
+      type: "file"
+      source: "bootstrap/02-seed-base-policy.sh"
+
+validation:
+  scripts:
+    - name: "verify-seed-base-policy"
+      description: "Confirms the overlay exists and the cluster policy matches it"
+      type: "file"
+      source: "validation/validate-completed.sh"

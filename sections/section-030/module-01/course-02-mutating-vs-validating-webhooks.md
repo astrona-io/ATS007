@@ -1,12 +1,10 @@
-# Part 2 — Mutating vs Validating Webhooks
-
-> Prerequisite: [Part 1 — The API Request Lifecycle & Webhook Types](./course-01-api-request-lifecycle-and-webhook-types.md). Landing page: [course.md](./course.md).
+# Mutating vs Validating Webhooks
 
 Registering a webhook is not "intercept everything" — a `MutatingWebhookConfiguration` or `ValidatingWebhookConfiguration` object carries a set of fields that precisely scope when the API server bothers to call it, and what happens if that call fails. Kyverno manages one of each, and understanding these fields is what makes the difference between "Kyverno enforces my policy" and "Kyverno was never even asked."
 
 ## Kyverno is the program on the other end of the call
 
-A webhook configuration only names an endpoint; something has to be listening there. In Kyverno's case that something is a set of Deployments in the `kyverno` namespace. The one that actually answers admission calls is `kyverno-admission-controller` — the others handle background work you will meet in Module 2.
+A webhook configuration only names an endpoint; something has to be listening there. In Kyverno's case that something is a set of Deployments in the `kyverno` namespace. The one that actually answers admission calls is `kyverno-admission-controller` — the others handle background work such as scanning resources that already exist.
 
 This has a direct operational consequence, and it is why the next section matters: if those pods are unhealthy, the API server's calls fail, and what happens to the blocked request is decided entirely by a single field on the webhook object.
 
@@ -102,6 +100,82 @@ This is the concrete, observable mechanism behind a sentence you'll see often in
 >
 > With no policies installed, the resource webhook has nothing to intercept, so its `resources` list is empty (some versions omit the rule entirely). Install a policy that matches a kind and this list grows to include it — that is the reconciliation loop above, observed from the empty end.
 
+## See it in your playground
+
+<!-- astrona:playground:renew -->
+
+First read which resources the validating webhook covers. With no policy installed, the list is short:
+
+```sh
+kubectl get validatingwebhookconfiguration kyverno-resource-validating-webhook-cfg -o jsonpath='{.webhooks[*].rules[*].resources}'
+```
+
+Save this as `clusterpolicy-require-configmap-label.yaml`:
+
+```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-configmap-label
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-managed-by
+      match:
+        any:
+          - resources:
+              kinds:
+                - ConfigMap
+      validate:
+        message: "ConfigMaps need a managed-by label."
+        pattern:
+          metadata:
+            labels:
+              managed-by: "?*"
+```
+
+Apply it:
+
+```sh
+kubectl apply -f clusterpolicy-require-configmap-label.yaml
+```
+
+Then read the webhook again after a few seconds:
+
+```sh
+kubectl get validatingwebhookconfiguration kyverno-resource-validating-webhook-cfg -o jsonpath='{.webhooks[*].rules[*].resources}'
+```
+
+The list now includes `configmaps`. The API server calls Kyverno for ConfigMaps because the admission controller added that rule for you, not because you edited the webhook. Delete the policy and the entry disappears again:
+
+```sh
+kubectl delete clusterpolicy require-configmap-label
+```
+
+## Your mission: Auto-Managed Webhook Configuration Lab
+
+You can now do the skill this part teaches on a live cluster. The mission asks you to do it again on a fresh one.
+
+First pause the playground:
+
+```sh
+astrona stop section-030-module-01-playground
+```
+
+Then run the mission and submit your work:
+
+```sh
+astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-030/module-01/labs/lab-01
+astrona submit
+```
+
+When you are done, remove the mission and start the playground again:
+
+```sh
+astrona destroy ats-007-lab-008
+astrona start section-030-module-01-playground
+```
+
 > [!WARNING]
 > **Common pitfalls**
 >
@@ -110,8 +184,3 @@ This is the concrete, observable mechanism behind a sentence you'll see often in
 > - **Assuming reconciliation is instantaneous.** Right after `kubectl apply -f policy.yaml`, the webhook rule may not have caught up. If you re-read the webhook object in the same second and don't see your resource kind yet, wait a few seconds before assuming the policy is broken — the policy object and the webhook rule are two separate resources reconciled by two separate controllers.
 
 > *A policy only takes effect if the API server was configured to call Kyverno for that kind — and Kyverno writes that configuration itself, from the policies you installed.*
-
-## Reference
-
-- `kubectl explain mutatingwebhookconfiguration.webhooks.failurePolicy` — the field's full documentation string from the installed API server.
-- Kyverno documentation: "Applying Policies" and "Webhook configuration" — how `webhookConfiguration` in the Kyverno install chart can further tune `failurePolicy`, `timeoutSeconds`, and namespace exclusions cluster-wide.

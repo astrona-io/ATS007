@@ -1,0 +1,23 @@
+metadata:
+  name: "ats-007-lab-017"
+  docs:
+    solution: "solution.md"
+    question: "question.md"
+
+bootstrap:
+  init:
+    - name: "install-kyverno"
+      description: "Installs Kyverno onto the kind cluster"
+      type: "file"
+      source: "bootstrap/01-install-kyverno.sh"
+    - name: "seed-vault-namespace"
+      description: "Creates the vault namespace"
+      type: "file"
+      source: "bootstrap/02-seed-vault-namespace.sh"
+
+validation:
+  scripts:
+    - name: "verify-seed-vault-namespace"
+      description: "Confirms the policy dials, the webhook configuration and both admission outcomes"
+      type: "file"
+      source: "validation/validate-completed.sh"

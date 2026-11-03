@@ -8,35 +8,29 @@ Kyverno turns policy into ordinary Kubernetes resources — no separate policy l
 
 ---
 
-## The Symmetrical 1:1:1 Learning Framework
-
-To make learning intuitive, digestible, and robust, this curriculum is built around a symmetrical **1:1:1 educational architecture**:
-
-1.  **The Textbook Lesson (`sections/section-XXX/module-YY/course.md`):** Narrative, book-style chapters written in a warm, expert "teacher's voice" that explain *why* Kyverno behaves the way it does, using real-world metaphors, inline YAML breakdowns, and clear diagrams.
-2.  **The Interactive Quiz (`sections/section-XXX/quiz.md`):** A scenario-based theoretical knowledge check testing diagnostic reasoning, complete with collapsible answers and technical explanation keys.
-3.  **The Dedicated Laboratory (`sections/section-XXX/module-YY/`, plus a `sections/section-XXX/capstone/` per section):** A live **kind** Kubernetes cluster sandbox launched instantly via the `astrona` CLI, where you write and apply real Kyverno policy and validate your cluster's state using automated grading scripts.
-
----
-
 ## Complete Curriculum & Lab Mapping
 
-The training series is divided into **4 main sections** covering **10 focused modules**, **10 graded module labs**, and **4 comprehensive Section Capstone Challenges**:
+The training series is divided into **4 main sections** covering **14 focused modules**, **14 graded module labs**, and **4 comprehensive Section Capstone Challenges**:
 
 | Section & Domain | Module & Chapter Reader | Practice Lab | astrona CLI Run Command |
 | :--- | :--- | :--- | :--- |
 | **010: Kyverno Policies & Rules** | [M1: Policy & Rule Anatomy](sections/section-010/module-01/course.md) | [lab](sections/section-010/module-01/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-010/module-01/labs/lab-01` |
 | | [M2: Validate Rules & foreach](sections/section-010/module-02/course.md) | [lab](sections/section-010/module-02/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-010/module-02/labs/lab-01` |
 | | [M3: Mutate & Generate Rules](sections/section-010/module-03/course.md) | [lab](sections/section-010/module-03/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-010/module-03/labs/lab-01` |
+| | [M4: Autogen & Policy Exceptions](sections/section-010/module-04/course.md) | [lab](sections/section-010/module-04/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-010/module-04/labs/lab-01` |
 | | **Section Capstone Challenge** | **[capstone](sections/section-010/capstone/labs/lab-01)** | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-010/capstone/labs/lab-01` |
 | **020: YAML Manifests** | [M1: Policy YAML Anatomy](sections/section-020/module-01/course.md) | [lab](sections/section-020/module-01/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-020/module-01/labs/lab-01` |
 | | [M2: Variables, Context & JMESPath](sections/section-020/module-02/course.md) | [lab](sections/section-020/module-02/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-020/module-02/labs/lab-01` |
 | | [M3: Kyverno CLI Manifest Validation](sections/section-020/module-03/course.md) | [lab](sections/section-020/module-03/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-020/module-03/labs/lab-01` |
+| | [M4: Policy Metadata & Kustomize](sections/section-020/module-04/course.md) | [lab](sections/section-020/module-04/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-020/module-04/labs/lab-01` |
 | | **Section Capstone Challenge** | **[capstone](sections/section-020/capstone/labs/lab-01)** | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-020/capstone/labs/lab-01` |
 | **030: Admission Controllers** | [M1: The Admission Control Model](sections/section-030/module-01/course.md) | [lab](sections/section-030/module-01/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-030/module-01/labs/lab-01` |
 | | [M2: Enforce, Audit & Reports](sections/section-030/module-02/course.md) | [lab](sections/section-030/module-02/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-030/module-02/labs/lab-01` |
+| | [M3: Failure Policy & Resource Filters](sections/section-030/module-03/course.md) | [lab](sections/section-030/module-03/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-030/module-03/labs/lab-01` |
 | | **Section Capstone Challenge** | **[capstone](sections/section-030/capstone/labs/lab-01)** | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-030/capstone/labs/lab-01` |
 | **040: OCI Images** | [M1: OCI Fundamentals & Digests](sections/section-040/module-01/course.md) | [lab](sections/section-040/module-01/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-040/module-01/labs/lab-01` |
 | | [M2: verifyImages with Cosign](sections/section-040/module-02/course.md) | [lab](sections/section-040/module-02/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-040/module-02/labs/lab-01` |
+| | [M3: Image Registry, Tag & Variable Rules](sections/section-040/module-03/course.md) | [lab](sections/section-040/module-03/labs/lab-01) | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-040/module-03/labs/lab-01` |
 | | **Section Capstone Challenge** | **[capstone](sections/section-040/capstone/labs/lab-01)** | `astrona run --git git@github.com:astrona-io/ATS007.git -c sections/section-040/capstone/labs/lab-01` |
 
 ---
@@ -46,10 +40,10 @@ The training series is divided into **4 main sections** covering **10 focused mo
 1.  **Enter a Domain Portal:** Navigate into a domain directory, such as `sections/section-010/`, and open its `README.md` to review the section's core competencies.
 2.  **Read the Chapters:** Open and read the narrative chapters in order (`module-01/course.md`, `module-02/course.md`, …). Focus on the diagrams, YAML breakdowns, and "Try it" checkpoints.
 3.  **Take the Chapter Self-Check:** Challenge yourself with the conceptual questions at the bottom of each course module.
-4.  **Test Your Diagnostics:** Open `quiz.md` inside that section and answer its scenario questions. Expand the `<details>` tags to read the teacher's deep-dive explanations.
+4.  **Test Your Diagnostics:** Open `quiz.yaml` inside that section and answer its scenario questions. Expand the `<details>` tags to read the teacher's deep-dive explanations.
 5.  **Practice the Sandboxes:** Run the module labs (e.g., `sections/section-010/module-01/labs/lab-01`) on a live kind cluster to build real policy-authoring muscle memory.
 6.  **Conquer the Capstone Challenges:** Boot up the section's **Capstone Challenge Lab**, solve the integration prompts, and run the automated validation suite to confirm your passing state.
-7.  **Simulate the Exam:** Once you have completed all 10 modules, open **`sections/final-domain-quiz.md`** and complete the final closed-book domain exam simulator under a time cap to audit your readiness.
+7.  **Simulate the Exam:** Once you have completed all 14 modules, open **`sections/final-domain-quiz.yaml`** and complete the final closed-book domain exam simulator under a time cap to audit your readiness.
 
 ---
 

@@ -43,6 +43,6 @@ After this module you can:
 
 ## Before you start
 
-You should have completed Module 1 or otherwise be comfortable creating a `ClusterPolicy` with a `validate` rule. No prior exposure to `PolicyReport` objects is assumed.
+You should be comfortable creating a `ClusterPolicy` with a `validate` rule. No prior exposure to `PolicyReport` objects is assumed.
 
 The linked playground gives you a fresh **kind** Kubernetes cluster with Kyverno already installed and `kubectl` already pointed at it — there is no VM and no SSH step. It starts with **no policies** and one deliberately non-compliant Deployment already running in the `analytics` namespace, so the checkpoints in both parts land on a real pre-existing violation rather than a hypothetical one.
